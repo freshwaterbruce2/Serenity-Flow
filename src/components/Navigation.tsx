@@ -1,0 +1,59 @@
+import { Home, Quote, Heart, Music2, LogOut } from 'lucide-react';
+import { motion } from 'motion/react';
+
+interface NavigationProps {
+  currentView: string;
+  onNavigate: (view: string) => void;
+  onSignOut: () => void;
+}
+
+export default function Navigation({ currentView, onNavigate, onSignOut }: NavigationProps) {
+  const tabs = [
+    { id: 'home', icon: Home, label: 'Home' },
+    { id: 'lessons', icon: Quote, label: 'Wisdom' },
+    { id: 'journal', icon: Heart, label: 'Sanctuary' },
+    { id: 'sounds', icon: Music2, label: 'Waves' },
+  ];
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md glass rounded-full shadow-2xl flex items-center justify-between px-2 py-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onNavigate(tab.id)}
+            className="relative flex flex-col items-center py-2 px-4 group"
+          >
+            {currentView === tab.id && (
+              <motion.div
+                layoutId="nav-pill"
+                className="absolute inset-0 bg-indigo-500 rounded-full -z-10"
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <tab.icon 
+              className={`w-5 h-5 transition-colors ${
+                currentView === tab.id ? 'text-white' : 'text-indigo-200/60 group-hover:text-indigo-300'
+              }`} 
+            />
+            <span className={`text-[8px] uppercase tracking-tighter mt-1 font-bold ${
+              currentView === tab.id ? 'text-white' : 'text-indigo-200/40'
+            }`}>
+              {tab.label}
+            </span>
+          </button>
+        ))}
+        
+        <div className="w-[1px] h-6 bg-black/5 mx-2" />
+        
+        <button
+          onClick={onSignOut}
+          className="flex flex-col items-center py-2 px-4 text-red-500/40 hover:text-red-500 group transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="text-[8px] uppercase font-bold mt-1">Exit</span>
+        </button>
+      </div>
+    </div>
+  );
+}

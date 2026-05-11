@@ -1,0 +1,12 @@
+{
+  "name": "Serenity Flow",
+  "description": "A calming wellness companion featuring interactive relaxation, meditation sounds, secure journaling, and daily CBT-inspired lessons.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "AI-powered wellness quotes",
+    "Secure journaling",
+    "Interactive calming visuals"
+  ]
+}
