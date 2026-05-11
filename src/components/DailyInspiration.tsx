@@ -55,7 +55,7 @@ export default function DailyInspiration() {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center py-12"
           >
-            <div className="w-8 h-8 rounded-full border-2 border-indigo-400/20 border-t-indigo-400 animate-spin mb-4" />
+            <div className="w-8 h-8 rounded-full border-2 border-purple-400/20 border-t-purple-400 animate-spin mb-4" />
             <p className="text-sm font-serif italic opacity-50">Gathering light...</p>
           </motion.div>
         ) : (
@@ -69,9 +69,9 @@ export default function DailyInspiration() {
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-2">
                 {inspiration?.type === 'CBT' ? (
-                  <Sparkles className="w-4 h-4 text-indigo-400" />
+                  <Sparkles className="w-4 h-4 text-purple-400" />
                 ) : (
-                  <Quote className="w-4 h-4 text-indigo-400" />
+                  <Quote className="w-4 h-4 text-purple-400" />
                 )}
                 <span className="text-[10px] uppercase tracking-widest font-bold opacity-40">
                   {inspiration?.type} Lesson

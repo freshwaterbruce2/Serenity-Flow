@@ -7,6 +7,11 @@ interface Particle {
   vy: number;
   life: number;
   color: string;
+  type: 'sparkle' | 'butterfly';
+  size: number;
+  angle: number;
+  wingSpeed: number;
+  time: number;
 }
 
 export default function ZenBackground() {
@@ -29,47 +34,108 @@ export default function ZenBackground() {
     window.addEventListener('resize', resize);
     resize();
 
-    const colors = ['#3A3A5E', '#1A1A2E', '#9d94ff', '#5a5a8e', '#E0E0E6'];
+    const colors = ['#e6d5f5', '#dec1f2', '#cba5ea', '#b98cdd', '#f2e8fa'];
 
-    const createParticle = (x: number, y: number) => {
+    const createParticle = (x: number, y: number, type: 'sparkle' | 'butterfly'): Particle => {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 1.5 + 0.5;
+      const speed = type === 'butterfly' ? (Math.random() * 0.4 + 0.2) : (Math.random() * 1.5 + 0.5);
       return {
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        life: 1,
+        life: type === 'butterfly' ? (Math.random() * 2 + 2) : 1, // butterflies live longer
         color: colors[Math.floor(Math.random() * colors.length)],
+        type,
+        size: type === 'butterfly' ? (Math.random() * 6 + 8) : (Math.random() * 3 + 1),
+        angle: angle,
+        wingSpeed: Math.random() * 0.1 + 0.05,
+        time: Math.random() * 100,
       };
     };
 
+    const spawnAmbient = () => {
+      if (particles.current.filter(p => p.type === 'butterfly').length < 12) {
+         const x = Math.random() < 0.5 ? -20 : canvas.width + 20;
+         const y = Math.random() * canvas.height;
+         const b = createParticle(x, y, 'butterfly');
+         const angleToCenter = Math.atan2(canvas.height/2 - y, canvas.width/2 - x);
+         b.vx = Math.cos(angleToCenter + (Math.random()-0.5)) * 0.6;
+         b.vy = Math.sin(angleToCenter + (Math.random()-0.5)) * 0.6;
+         b.angle = Math.atan2(b.vy, b.vx);
+         particles.current.push(b);
+      }
+    };
+    
+    // Spawn initial butterflies
+    for(let i=0; i<8; i++) spawnAmbient();
+    const spawnInterval = setInterval(spawnAmbient, 2000);
+
     const animate = () => {
-      ctx.fillStyle = 'rgba(13, 13, 18, 0.08)';
+      ctx.fillStyle = 'rgba(250, 247, 252, 0.4)'; // match background root fade (light theme)
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       if (mouse.current.active) {
         for (let i = 0; i < 2; i++) {
-          particles.current.push(createParticle(mouse.current.x, mouse.current.y));
+          particles.current.push(createParticle(mouse.current.x, mouse.current.y, 'sparkle'));
         }
       }
 
       for (let i = particles.current.length - 1; i >= 0; i--) {
         const p = particles.current[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= 0.01;
+        p.time += p.wingSpeed;
 
-        if (p.life <= 0) {
+        if (p.type === 'butterfly') {
+          p.x += p.vx + Math.cos(p.time) * 0.5;
+          p.y += p.vy + Math.sin(p.time * 0.8) * 0.5;
+          p.angle = Math.atan2(p.vy, p.vx);
+          p.life -= 0.002;
+        } else {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= 0.01;
+        }
+
+        if (p.life <= 0 || p.x < -50 || p.x > canvas.width + 50 || p.y < -50 || p.y > canvas.height + 50) {
           particles.current.splice(i, 1);
           continue;
         }
 
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.life * 4, 0, Math.PI * 2);
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life * 0.3;
-        ctx.fill();
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.type === 'butterfly' ? p.angle + Math.PI/2 : 0);
+
+        if (p.type === 'butterfly') {
+          const flap = Math.abs(Math.cos(p.time));
+          const wingW = p.size * (0.2 + flap * 0.8);
+          
+          ctx.globalAlpha = Math.min(p.life, 0.6);
+          ctx.fillStyle = p.color;
+          
+          // left wing
+          ctx.beginPath();
+          ctx.ellipse(-wingW/2 - 1, 0, wingW/2, p.size, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // right wing
+          ctx.beginPath();
+          ctx.ellipse(wingW/2 + 1, 0, wingW/2, p.size, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // tiny glowing body
+          ctx.globalAlpha = Math.min(p.life, 0.9);
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size/4, 0, Math.PI*2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.life * p.size * 2, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.life * 0.5;
+          ctx.fill();
+        }
+        ctx.restore();
       }
 
       requestAnimationFrame(animate);
@@ -101,6 +167,7 @@ export default function ZenBackground() {
     const animationId = animate();
 
     return () => {
+      clearInterval(spawnInterval);
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('touchmove', handleTouchMove);
@@ -112,7 +179,7 @@ export default function ZenBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 -z-10 bg-[#0D0D12]"
+      className="fixed inset-0 -z-10 bg-[#faf7fc]"
       style={{ touchAction: 'none' }}
     />
   );

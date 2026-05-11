@@ -55,7 +55,7 @@ export default function AudioLayer() {
                     setShowPicker(false);
                   }}
                   className={`px-3 py-2 text-sm text-left rounded-lg transition-colors ${
-                    currentTrack.id === track.id ? 'bg-indigo-500 text-white' : 'hover:bg-white/5'
+                    currentTrack.id === track.id ? 'bg-purple-500 text-white' : 'hover:bg-white/5'
                   }`}
                 >
                   {track.name}
@@ -78,7 +78,7 @@ export default function AudioLayer() {
 
         <button
           onClick={togglePlay}
-          className="p-2 rounded-full bg-indigo-500 text-white hover:scale-105 transition-transform"
+          className="p-2 rounded-full bg-purple-500 text-white hover:scale-105 transition-transform"
         >
           {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
         </button>

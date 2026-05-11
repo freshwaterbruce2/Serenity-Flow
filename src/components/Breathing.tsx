@@ -6,9 +6,9 @@ export default function Breathing() {
   const [active, setActive] = useState(false);
 
   const STEPS = [
-    { text: 'Breathe In', duration: 4000, color: 'bg-indigo-500/20' },
-    { text: 'Hold', duration: 7000, color: 'bg-[#3A3A5E]/50' },
-    { text: 'Breathe Out', duration: 8000, color: 'bg-indigo-400/20' },
+    { text: 'Breathe In', duration: 4000, color: 'bg-purple-500/20' },
+    { text: 'Hold', duration: 7000, color: 'bg-purple-900/50' },
+    { text: 'Breathe Out', duration: 8000, color: 'bg-purple-400/20' },
   ];
 
   useEffect(() => {

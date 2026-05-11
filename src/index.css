@@ -6,9 +6,9 @@
 }
 
 :root {
-  --background: #0D0D12;
-  --foreground: #E0E0E6;
-  --accent: #3A3A5E;
+  --background: #faf7fc;
+  --foreground: #3b2b52;
+  --accent: #9d7ecf;
 }
 
 body {
@@ -26,22 +26,23 @@ body {
 
 /* Atmospheric effects */
 .glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 30px rgba(157, 126, 207, 0.05);
 }
 
 .accent-gradient {
-  background: radial-gradient(circle at center, #3A3A5E 0%, #1A1A2E 100%);
+  background: radial-gradient(circle at center, #ede5f6 0%, #faf7fc 100%);
 }
 
 .glow-dot {
-  box-shadow: 0 0 15px rgba(157, 148, 255, 0.4);
+  box-shadow: 0 0 15px rgba(157, 126, 207, 0.6);
 }
 
 .atmospheric-bg {
   background: 
-    radial-gradient(circle at 10% 20%, rgba(58, 58, 94, 0.2) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(26, 26, 46, 0.5) 0%, transparent 40%),
-    #0D0D12;
+    radial-gradient(circle at 10% 20%, rgba(157, 126, 207, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(200, 162, 255, 0.15) 0%, transparent 40%),
+    #faf7fc;
 }
