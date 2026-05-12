@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 import { Quote, Sparkles, RefreshCcw } from 'lucide-react';
 
@@ -19,10 +19,18 @@ export default function DailyInspiration() {
     setLoading(true);
     try {
       const response = await genAI.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-pro-preview",
         contents: "Generate a daily wellness inspiration. It should be either a Cognitive Behavioral Therapy (CBT) tip for emotional regulation (especially for someone with BPD sensitivity) or a deep inspirational quote. Return as JSON with keys: title, content, type (CBT or Quote).",
         config: {
-          responseMimeType: "application/json"
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              content: { type: Type.STRING },
+              type: { type: Type.STRING }
+            }
+          }
         }
       });
       
@@ -55,7 +63,7 @@ export default function DailyInspiration() {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center py-12"
           >
-            <div className="w-8 h-8 rounded-full border-2 border-purple-400/20 border-t-purple-400 animate-spin mb-4" />
+            <div className="w-8 h-8 rounded-full border-2 border-sky-400/20 border-t-sky-400 animate-spin mb-4" />
             <p className="text-sm font-serif italic opacity-50">Gathering light...</p>
           </motion.div>
         ) : (
@@ -69,9 +77,9 @@ export default function DailyInspiration() {
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-2">
                 {inspiration?.type === 'CBT' ? (
-                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  <Sparkles className="w-4 h-4 text-sky-400" />
                 ) : (
-                  <Quote className="w-4 h-4 text-purple-400" />
+                  <Quote className="w-4 h-4 text-sky-400" />
                 )}
                 <span className="text-[10px] uppercase tracking-widest font-bold opacity-40">
                   {inspiration?.type} Lesson

@@ -83,7 +83,7 @@ export default function JournalSecure() {
   if (loadingConfig) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6">
-        <p className="text-purple-300 font-serif italic animate-pulse">Checking lock...</p>
+        <p className="text-sky-300 font-serif italic animate-pulse">Checking lock...</p>
       </div>
     );
   }
@@ -98,11 +98,11 @@ export default function JournalSecure() {
           animate={{ scale: 1, opacity: 1 }}
           className="w-full max-w-xs p-8 rounded-3xl glass text-center"
         >
-          <div className="w-16 h-16 bg-purple-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock className="w-6 h-6 text-purple-400" />
+          <div className="w-16 h-16 bg-sky-900/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-6 h-6 text-sky-500" />
           </div>
-          <h2 className="text-xl font-serif mb-2">Private Sanctuary</h2>
-          <p className="text-sm opacity-50 mb-8 font-light italic">
+          <h2 className="text-xl font-serif mb-2 text-sky-900">Private Sanctuary</h2>
+          <p className="text-sm text-sky-900/50 mb-8 font-light italic">
             {isCreating ? 'Create a 4-digit PIN' : 'Enter your 4-digit PIN'}
           </p>
           
@@ -110,7 +110,7 @@ export default function JournalSecure() {
             {[0, 1, 2, 3].map((i) => (
               <div 
                 key={i}
-                className={`w-3 h-3 rounded-full border border-purple-400/50 transition-colors ${pin.length > i ? 'bg-purple-400' : ''}`}
+                className={`w-3 h-3 rounded-full border border-sky-400/50 transition-colors ${pin.length > i ? 'bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.5)]' : ''}`}
               />
             ))}
           </div>
@@ -151,7 +151,7 @@ export default function JournalSecure() {
                     }
                   }
                 }}
-                className={`h-12 rounded-xl text-lg font-light flex items-center justify-center transition-colors text-purple-900 ${num !== '' ? 'hover:bg-purple-900/5 active:bg-purple-900/10' : ''}`}
+                className={`h-12 rounded-xl text-lg font-light flex items-center justify-center transition-colors text-sky-900 ${num !== '' ? 'hover:bg-sky-900/5 active:bg-sky-900/10' : ''}`}
               >
                 {num === 'del' ? <ChevronRight className="w-4 h-4 rotate-180" /> : num}
               </button>
@@ -165,13 +165,13 @@ export default function JournalSecure() {
   return (
     <div className="p-6 pb-32">
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-serif">Journal</h2>
+        <h2 className="text-3xl font-serif text-sky-900">Journal</h2>
         <button 
           onClick={() => {
             setShowEditor(true);
             setPromptIndex(Math.floor(Math.random() * CBT_PROMPTS.length));
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-full text-sm font-medium shadow-lg hover:scale-105 active:scale-95 transition-transform"
+          className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-full text-sm font-medium shadow-lg hover:scale-105 active:scale-95 transition-transform"
         >
           <PenLine className="w-4 h-4" />
           Write
@@ -216,59 +216,59 @@ export default function JournalSecure() {
             <div className="flex justify-between items-center mb-8 shrink-0">
               <button 
                 onClick={() => setShowEditor(false)}
-                className="p-2 rounded-full hover:bg-purple-900/5 text-purple-900"
+                className="p-2 rounded-full hover:bg-sky-900/5 text-sky-900"
               >
                 <X className="w-6 h-6" />
               </button>
               <button 
                 onClick={saveEntry}
                 disabled={!newEntry.content}
-                className="px-6 py-2 bg-purple-500 text-white rounded-full font-medium disabled:opacity-30"
+                className="px-6 py-2 bg-sky-500 text-white rounded-full font-medium disabled:opacity-30"
               >
                 Soul Keep
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto pb-6">
-              <div className="mb-6 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20">
+              <div className="mb-6 p-4 rounded-2xl bg-sky-500/10 border border-sky-500/20">
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-400" />
-                    <span className="text-[10px] uppercase tracking-widest text-purple-800 font-bold">Reflection Prompt</span>
+                    <Sparkles className="w-4 h-4 text-sky-500" />
+                    <span className="text-[10px] uppercase tracking-widest text-sky-800 font-bold">Reflection Prompt</span>
                   </div>
                   <button 
                     onClick={() => setPromptIndex((prev) => (prev + 1) % CBT_PROMPTS.length)}
-                    className="p-1 hover:bg-purple-900/5 rounded-full"
+                    className="p-1 hover:bg-sky-900/5 rounded-full"
                   >
-                    <RefreshCcw className="w-3 h-3 text-purple-600" />
+                    <RefreshCcw className="w-3 h-3 text-sky-600" />
                   </button>
                 </div>
-                <p className="text-sm text-purple-900/80 italic font-serif">"{CBT_PROMPTS[promptIndex]}"</p>
+                <p className="text-sm text-sky-900/80 italic font-serif">"{CBT_PROMPTS[promptIndex]}"</p>
               </div>
 
               <input
                 autoFocus
                 placeholder="Title your moment..."
-                className="w-full text-3xl font-serif bg-transparent outline-none mb-6 placeholder:opacity-30 text-purple-900"
+                className="w-full text-3xl font-serif bg-transparent outline-none mb-6 placeholder:opacity-30 text-sky-900"
                 value={newEntry.title}
                 onChange={(e) => setNewEntry({ ...newEntry, title: e.target.value })}
               />
               
               <textarea
                 placeholder="What's flowing in your mind?"
-                className="w-full min-h-[300px] text-lg font-light bg-transparent outline-none border-none resize-none placeholder:opacity-30 leading-relaxed text-purple-900"
+                className="w-full min-h-[300px] text-lg font-light bg-transparent outline-none border-none resize-none placeholder:opacity-30 leading-relaxed text-sky-900"
                 value={newEntry.content}
                 onChange={(e) => setNewEntry({ ...newEntry, content: e.target.value })}
               />
             </div>
 
-            <div className="shrink-0 pt-4 border-t border-purple-900/10 flex items-center gap-4 overflow-x-auto pb-4">
-              <span className="text-xs uppercase tracking-widest text-purple-900/40 shrink-0">Mood:</span>
+            <div className="shrink-0 pt-4 border-t border-sky-900/10 flex items-center gap-4 overflow-x-auto pb-4">
+              <span className="text-xs uppercase tracking-widest text-sky-900/40 shrink-0">Mood:</span>
               {(['calm', 'happy', 'overwhelmed', 'sad', 'peaceful'] as const).map(m => (
                 <button
                   key={m}
                   onClick={() => setNewEntry({ ...newEntry, mood: m })}
-                  className={`px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest border border-purple-900/20 transition-colors shrink-0 ${newEntry.mood === m ? 'bg-purple-500 text-white border-purple-500' : 'text-purple-900 opacity-60 hover:opacity-100 hover:bg-purple-900/5'}`}
+                  className={`px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest border border-sky-900/20 transition-colors shrink-0 ${newEntry.mood === m ? 'bg-sky-500 text-white border-sky-500 shadow-[0_0_15px_rgba(56,189,248,0.4)]' : 'text-sky-900 opacity-60 hover:opacity-100 hover:bg-sky-900/5'}`}
                 >
                   {m}
                 </button>

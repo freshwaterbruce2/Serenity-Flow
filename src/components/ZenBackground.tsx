@@ -34,7 +34,7 @@ export default function ZenBackground() {
     window.addEventListener('resize', resize);
     resize();
 
-    const colors = ['#e6d5f5', '#dec1f2', '#cba5ea', '#b98cdd', '#f2e8fa'];
+    const colors = ['#bae6fd', '#7dd3fc', '#38bdf8', '#0ea5e9', '#e0f2fe'];
 
     const createParticle = (x: number, y: number, type: 'sparkle' | 'butterfly'): Particle => {
       const angle = Math.random() * Math.PI * 2;
@@ -72,7 +72,7 @@ export default function ZenBackground() {
     const spawnInterval = setInterval(spawnAmbient, 2000);
 
     const animate = () => {
-      ctx.fillStyle = 'rgba(250, 247, 252, 0.4)'; // match background root fade (light theme)
+      ctx.fillStyle = 'rgba(240, 249, 255, 0.4)'; // match background root fade (light blue theme)
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       if (mouse.current.active) {
@@ -179,7 +179,7 @@ export default function ZenBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 -z-10 bg-[#faf7fc]"
+      className="fixed inset-0 -z-10 bg-[#f0f9ff]"
       style={{ touchAction: 'none' }}
     />
   );

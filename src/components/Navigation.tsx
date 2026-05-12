@@ -28,17 +28,17 @@ export default function Navigation({ currentView, onNavigate, onSignOut }: Navig
             {currentView === tab.id && (
               <motion.div
                 layoutId="nav-pill"
-                className="absolute inset-0 bg-purple-500 rounded-full -z-10"
+                className="absolute inset-0 bg-sky-500 rounded-full -z-10"
                 transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
               />
             )}
             <tab.icon 
               className={`w-5 h-5 transition-colors ${
-                currentView === tab.id ? 'text-white' : 'text-purple-200/60 group-hover:text-purple-300'
+                currentView === tab.id ? 'text-white' : 'text-sky-200/60 group-hover:text-sky-300'
               }`} 
             />
             <span className={`text-[8px] uppercase tracking-tighter mt-1 font-bold ${
-              currentView === tab.id ? 'text-white' : 'text-purple-200/40'
+              currentView === tab.id ? 'text-white' : 'text-sky-200/40'
             }`}>
               {tab.label}
             </span>

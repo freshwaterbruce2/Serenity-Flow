@@ -52,13 +52,13 @@ export default function App() {
           className="text-center"
         >
           <Logo />
-          <p className="mt-8 mb-12 text-sm font-light italic opacity-60 text-purple-900 max-w-xs leading-relaxed">
+          <p className="mt-8 mb-12 text-sm font-light italic opacity-60 text-sky-900 max-w-xs leading-relaxed">
             Welcome to your private space of peace. A gift for the soul, a haven for the heart.
           </p>
           
           <button
             onClick={signIn}
-            className="flex items-center gap-3 px-8 py-4 bg-purple-500 text-white rounded-full font-medium shadow-2xl hover:scale-105 active:scale-95 transition-all group"
+            className="flex items-center gap-3 px-8 py-4 bg-sky-500 text-white rounded-full font-medium shadow-2xl hover:scale-105 active:scale-95 transition-all group"
           >
             <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             Enter Your Sanctuary
@@ -99,13 +99,13 @@ export default function App() {
               </div>
 
               <div className="pt-8">
-                <div className="bg-purple-100/40 p-6 rounded-3xl border border-purple-200/50 flex items-start gap-4">
+                <div className="bg-sky-100/40 p-6 rounded-3xl border border-sky-200/50 flex items-start gap-4">
                   <div className="p-2 bg-white/60 rounded-xl shadow-sm">
-                    <Sparkles className="w-5 h-5 text-purple-600" />
+                    <Sparkles className="w-5 h-5 text-sky-600" />
                   </div>
                   <div>
-                    <h5 className="font-serif text-lg text-purple-900">Feeling Overwhelmed?</h5>
-                    <p className="text-sm text-purple-900/60 leading-relaxed italic mt-1">
+                    <h5 className="font-serif text-lg text-sky-900">Feeling Overwhelmed?</h5>
+                    <p className="text-sm text-sky-900/60 leading-relaxed italic mt-1">
                       Pause and explore the background. Let the colors follow your touch.
                     </p>
                   </div>
@@ -146,7 +146,7 @@ export default function App() {
               className="px-6 py-12"
             >
               <div className="flex items-center gap-3 mb-8">
-                <Sparkles className="w-6 h-6 text-purple-400" />
+                <Sparkles className="w-6 h-6 text-sky-400" />
                 <h2 className="text-3xl font-serif">Daily Wisdom</h2>
               </div>
               
@@ -156,7 +156,7 @@ export default function App() {
                    <p className="text-sm font-serif italic mb-2">Reflect:</p>
                    <p className="text-base font-light italic">"The strongest hearts are those that allow themselves to soften."</p>
                 </div>
-                <div className="p-6 rounded-3xl glass border-purple-500/20">
+                <div className="p-6 rounded-3xl glass border-sky-500/20">
                    <p className="text-xs uppercase tracking-widest opacity-40 mb-4">CBT Foundation</p>
                    <h4 className="text-xl font-serif mb-2">Wise Mind</h4>
                    <p className="text-sm leading-relaxed opacity-70">
@@ -176,7 +176,7 @@ export default function App() {
               className="px-6 py-12"
             >
               <div className="flex items-center gap-3 mb-12">
-                <Wind className="w-6 h-6 text-purple-400" />
+                <Wind className="w-6 h-6 text-sky-400" />
                 <h2 className="text-3xl font-serif">Sound Waves</h2>
               </div>
 
