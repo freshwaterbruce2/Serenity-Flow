@@ -34,11 +34,11 @@ export default function Navigation({ currentView, onNavigate, onSignOut }: Navig
             )}
             <tab.icon 
               className={`w-5 h-5 transition-colors ${
-                currentView === tab.id ? 'text-white' : 'text-sky-200/60 group-hover:text-sky-300'
+                currentView === tab.id ? 'text-white' : 'text-sky-800/60 group-hover:text-sky-800'
               }`} 
             />
             <span className={`text-[8px] uppercase tracking-tighter mt-1 font-bold ${
-              currentView === tab.id ? 'text-white' : 'text-sky-200/40'
+              currentView === tab.id ? 'text-white' : 'text-sky-800/50'
             }`}>
               {tab.label}
             </span>
@@ -49,7 +49,7 @@ export default function Navigation({ currentView, onNavigate, onSignOut }: Navig
         
         <button
           onClick={onSignOut}
-          className="flex flex-col items-center py-2 px-4 text-red-500/40 hover:text-red-500 group transition-colors"
+          className="flex flex-col items-center py-2 px-4 text-rose-600/60 hover:text-rose-600 group transition-colors"
         >
           <LogOut className="w-4 h-4" />
           <span className="text-[8px] uppercase font-bold mt-1">Exit</span>

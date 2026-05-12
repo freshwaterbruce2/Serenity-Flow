@@ -33,7 +33,7 @@ export default function App() {
         <motion.div
           animate={{ opacity: [0.3, 0.6, 0.3], scale: [0.98, 1, 0.98] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="text-purple-900/40 font-serif italic"
+          className="text-sky-900/40 font-serif italic"
         >
           Flowing...
         </motion.div>

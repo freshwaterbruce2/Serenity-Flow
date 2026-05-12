@@ -19,7 +19,7 @@ export default function DailyInspiration() {
     setLoading(true);
     try {
       const response = await genAI.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-3-flash-preview",
         contents: "Generate a daily wellness inspiration. It should be either a Cognitive Behavioral Therapy (CBT) tip for emotional regulation (especially for someone with BPD sensitivity) or a deep inspirational quote. Return as JSON with keys: title, content, type (CBT or Quote).",
         config: {
           responseMimeType: "application/json",
