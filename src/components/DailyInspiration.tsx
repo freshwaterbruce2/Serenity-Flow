@@ -3,7 +3,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 import { Quote, Sparkles, RefreshCcw } from 'lucide-react';
 
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+declare global {
+  interface Window {
+    aistudio?: {
+      hasSelectedApiKey: () => Promise<boolean>;
+      openSelectKey: () => Promise<void>;
+    };
+  }
+}
 
 interface Inspiration {
   title: string;
@@ -18,6 +25,7 @@ export default function DailyInspiration() {
   const fetchInspiration = async () => {
     setLoading(true);
     try {
+      const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await genAI.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: "Generate a daily wellness inspiration. It should be either a Cognitive Behavioral Therapy (CBT) tip for emotional regulation (especially for someone with BPD sensitivity) or a deep inspirational quote. Return as JSON with keys: title, content, type (CBT or Quote).",
