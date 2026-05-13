@@ -1,201 +1,868 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { GoogleGenAI, Type } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
-import { Palette, Check } from 'lucide-react';
+import { Palette, Check, ArrowLeftRight, Save, Download, Sparkles, Wand2 } from 'lucide-react';
 
-const PALETTE = [
-  '#0891b2', '#06b6d4', '#22d3ee', '#67e8f9', '#a5f3fc', '#ecfeff',
-  '#0284c7', '#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#f0f9ff',
-  '#7e22ce', '#9333ea', '#a855f7', '#c084fc', '#d8b4fe', '#f5f3ff',
-  '#be185d', '#db2777', '#e11d48', '#f43f5e', '#fb7185', '#fda4af'
+interface SessionInfo {
+  therapeutic_intro: string;
+  palette: Record<string, { hex: string, theme: string }>;
+  mid_coloring_prompt: string;
+  completion_affirmation: string;
+}
+
+const PALETTES = {
+  celestial: [
+    '#0891b2', '#06b6d4', '#22d3ee', '#67e8f9', '#a5f3fc', '#ecfeff',
+    '#0284c7', '#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#f0f9ff',
+    '#7e22ce', '#9333ea', '#a855f7', '#c084fc', '#d8b4fe', '#f5f3ff',
+    '#be185d', '#db2777', '#e11d48', '#f43f5e', '#fb7185', '#fda4af'
+  ],
+  pastel: [
+    '#ffe4e6', '#fecdd3', '#fda4af', '#fb7185', '#f43f5e', '#e11d48',
+    '#ffedd5', '#fed7aa', '#fdba74', '#fb923c', '#f97316', '#ea580c',
+    '#fef3c7', '#fde68a', '#fcd34d', '#fbbf24', '#f59e0b', '#d97706',
+    '#ecfdf5', '#d1fae5', '#a7f3d0', '#6ee7b7', '#34d399', '#10b981'
+  ],
+  earth: [
+    '#fef3c7', '#fde68a', '#fcd34d', '#fbbf24', '#f59e0b', '#d97706',
+    '#ecfccb', '#d9f99d', '#bef264', '#a3e635', '#84cc16', '#65a30d',
+    '#ffedd5', '#fed7aa', '#fdba74', '#fb923c', '#f97316', '#ea580c',
+    '#f3f4f6', '#e5e7eb', '#d1d5db', '#9ca3af', '#6b7280', '#4b5563'
+  ]
+};
+
+type PaletteName = keyof typeof PALETTES | 'ai' | 'classic';
+
+const PALETTE_NAMES: { id: PaletteName; label: string }[] = [
+  { id: 'celestial', label: 'Celestial' },
+  { id: 'pastel', label: 'Pastel' },
+  { id: 'earth', label: 'Earth Tones' },
+  { id: 'ai', label: 'AI Guided' },
+  { id: 'classic', label: 'Classic mode' }
 ];
 
 interface PathObj {
   id: string;
   d: string;
+  isSymmetric?: boolean;
+  mirrorId?: string;
+  number?: number;
+  center?: { x: number, y: number };
 }
 
-const BUTTERFLY_PATHS: PathObj[] = [
-  // Upper Left Wing - Main Outline
-  { id: 'ul-outer', d: 'M100 100 C70 40, 5 15, 10 55 C12 70, 30 110, 100 100' },
-  // Upper Left Wing - Interior Cells (Ornate)
-  { id: 'ul-cell1', d: 'M95 90 C80 60, 40 40, 25 50 C20 60, 40 85, 95 90' },
-  { id: 'ul-cell2', d: 'M85 80 C70 55, 50 45, 40 55 C35 60, 50 75, 85 80' },
-  { id: 'ul-cell3', d: 'M70 70 C60 55, 55 50, 50 55 C48 60, 60 65, 70 70' },
-  { id: 'ul-edge1', d: 'M20 50 C15 45, 15 35, 25 30 C35 25, 45 40, 20 50' },
-  { id: 'ul-edge2', d: 'M40 35 C35 30, 45 25, 55 25 C65 25, 60 35, 40 35' },
-  { id: 'ul-dot1', d: 'M15 55 A 4 4 0 1 0 15 54 Z' },
-  { id: 'ul-dot2', d: 'M25 90 A 3 3 0 1 0 25 89 Z' },
+interface Artwork {
+  id: string;
+  name: string;
+  paths: PathObj[];
+  viewBox: string;
+  classicPalette?: string[];
+}
 
-  // Upper Right Wing - Main Outline
-  { id: 'ur-outer', d: 'M100 100 C130 40, 195 15, 190 55 C188 70, 170 110, 100 100' },
-  // Upper Right Wing - Interior Cells (Ornate)
-  { id: 'ur-cell1', d: 'M105 90 C120 60, 160 40, 175 50 C180 60, 160 85, 105 90' },
-  { id: 'ur-cell2', d: 'M115 80 C130 55, 150 45, 160 55 C165 60, 150 75, 115 80' },
-  { id: 'ur-cell3', d: 'M130 70 C140 55, 145 50, 150 55 C152 60, 140 65, 130 70' },
-  { id: 'ur-edge1', d: 'M180 50 C185 45, 185 35, 175 30 C165 25, 155 40, 180 50' },
-  { id: 'ur-edge2', d: 'M160 35 C165 30, 155 25, 145 25 C135 25, 140 35, 160 35' },
-  { id: 'ur-dot1', d: 'M185 55 A 4 4 0 1 0 185 54 Z' },
-  { id: 'ur-dot2', d: 'M175 90 A 3 3 0 1 0 175 89 Z' },
+const ARTWORKS: Artwork[] = [
+  {
+    id: 'butterfly',
+    name: 'Eternal Butterfly',
+    viewBox: '0 0 200 200',
+    classicPalette: ['#f43f5e', '#fb923c', '#fbbf24', '#34d399', '#38bdf8', '#818cf8'],
+    paths: [
+      // Left Wing Upper - Highly Detailed
+      { id: 'ul-outer', d: 'M100 100 C70 40, 5 15, 10 55 C12 70, 30 110, 100 100', mirrorId: 'ur-outer', number: 1, center: {x: 40, y: 50} },
+      { id: 'ul-v1', d: 'M100 100 C80 60, 40 40, 30 55', mirrorId: 'ur-v1', number: 2, center: {x: 60, y: 60} },
+      { id: 'ul-v2', d: 'M100 100 C70 80, 50 90, 40 100', mirrorId: 'ur-v2', number: 3, center: {x: 60, y: 85} },
+      { id: 'ul-cell-1', d: 'M90 95 C75 70, 45 45, 30 55 C25 60, 45 80, 90 95', mirrorId: 'ur-cell-1', number: 4, center: {x: 50, y: 70} },
+      { id: 'ul-cell-2', d: 'M80 85 C65 65, 50 55, 40 60 C35 65, 50 75, 80 85', mirrorId: 'ur-cell-2', number: 5, center: {x: 55, y: 65} },
+      { id: 'ul-cell-3', d: 'M70 75 C60 60, 55 55, 50 60 C45 65, 55 70, 70 75', mirrorId: 'ur-cell-3', number: 6, center: {x: 58, y: 62} },
+      { id: 'ul-det-1', d: 'M50 30 Q40 20 30 35 Q40 45 50 30', mirrorId: 'ur-det-1', number: 1, center: {x: 40, y: 32} },
+      { id: 'ul-det-2', d: 'M25 60 Q15 50 20 70 Q30 80 25 60', mirrorId: 'ur-det-2', number: 2, center: {x: 22, y: 65} },
+      { id: 'ul-dot-1', d: 'M15 45 A 4 4 0 1 0 15 44 Z', mirrorId: 'ur-dot-1' },
+      { id: 'ul-dot-2', d: 'M40 30 A 3 3 0 1 0 40 29 Z', mirrorId: 'ur-dot-2' },
+      { id: 'ul-dot-3', d: 'M60 25 A 2 2 0 1 0 60 24 Z', mirrorId: 'ur-dot-3' },
+      
+      // Right Wing Upper
+      { id: 'ur-outer', d: 'M100 100 C130 40, 195 15, 190 55 C188 70, 170 110, 100 100', mirrorId: 'ul-outer' },
+      { id: 'ur-v1', d: 'M100 100 C120 60, 160 40, 170 55', mirrorId: 'ul-v1' },
+      { id: 'ur-v2', d: 'M100 100 C130 80, 150 90, 160 100', mirrorId: 'ul-v2' },
+      { id: 'ur-cell-1', d: 'M110 95 C125 70, 155 45, 170 55 C175 60, 155 80, 110 95', mirrorId: 'ul-cell-1' },
+      { id: 'ur-cell-2', d: 'M120 85 C135 65, 150 55, 160 60 C165 65, 150 75, 120 85', mirrorId: 'ul-cell-2' },
+      { id: 'ur-cell-3', d: 'M130 75 C140 60, 145 55, 150 60 C155 65, 145 70, 130 75', mirrorId: 'ul-cell-3' },
+      { id: 'ur-det-1', d: 'M150 30 Q160 20 170 35 Q160 45 150 30', mirrorId: 'ul-det-1' },
+      { id: 'ur-det-2', d: 'M175 60 Q185 50 180 70 Q170 80 175 60', mirrorId: 'ul-det-2' },
+      { id: 'ur-dot-1', d: 'M185 45 A 4 4 0 1 0 185 44 Z', mirrorId: 'ul-dot-1' },
+      { id: 'ur-dot-2', d: 'M160 30 A 3 3 0 1 0 160 29 Z', mirrorId: 'ul-dot-2' },
+      { id: 'ur-dot-3', d: 'M140 25 A 2 2 0 1 0 140 24 Z', mirrorId: 'ul-dot-3' },
 
-  // Lower Left Wing - Main Outline
-  { id: 'll-outer', d: 'M100 100 C70 130, 30 180, 20 160 C10 140, 50 110, 100 100' },
-  // Lower Left Wing - Interior Cells
-  { id: 'll-cell1', d: 'M95 110 C75 140, 45 165, 35 150 C30 140, 60 120, 95 110' },
-  { id: 'll-cell2', d: 'M85 115 C70 135, 55 155, 50 145 C45 135, 65 125, 85 115' },
-  { id: 'll-dot1', d: 'M35 170 A 5 5 0 1 0 35 169 Z' },
-  { id: 'll-dot2', d: 'M55 175 A 4 4 0 1 0 55 174 Z' },
+      // Left Wing Lower
+      { id: 'll-outer', d: 'M100 100 C70 130, 30 180, 20 160 C10 140, 50 110, 100 100', mirrorId: 'lr-outer' },
+      { id: 'll-v1', d: 'M100 100 Q60 140 40 160', mirrorId: 'lr-v1' },
+      { id: 'll-cell-1', d: 'M95 110 C80 130, 50 160, 40 155 C35 150, 60 120, 95 110', mirrorId: 'lr-cell-1' },
+      { id: 'll-cell-2', d: 'M85 120 C75 135, 60 150, 55 145 C50 140, 70 125, 85 120', mirrorId: 'lr-cell-2' },
+      { id: 'll-det-1', d: 'M50 170 Q30 180 35 150 Q55 140 50 170', mirrorId: 'lr-det-1' },
+      { id: 'll-dot-1', d: 'M25 150 A 6 6 0 1 0 25 149 Z', mirrorId: 'lr-dot-1' },
+      { id: 'll-dot-2', d: 'M45 175 A 3 3 0 1 0 45 174 Z', mirrorId: 'lr-dot-2' },
+      
+      // Right Wing Lower
+      { id: 'lr-outer', d: 'M100 100 C130 130, 170 180, 180 160 C190 140, 150 110, 100 100', mirrorId: 'll-outer' },
+      { id: 'lr-v1', d: 'M100 100 Q140 140 160 160', mirrorId: 'll-v1' },
+      { id: 'lr-cell-1', d: 'M105 110 C120 130, 150 160, 160 155 C165 150, 140 120, 105 110', mirrorId: 'll-cell-1' },
+      { id: 'lr-cell-2', d: 'M115 120 C125 135, 140 150, 145 145 C150 140, 130 125, 115 120', mirrorId: 'll-cell-2' },
+      { id: 'lr-det-1', d: 'M150 170 Q170 180 165 150 Q145 140 150 170', mirrorId: 'll-det-1' },
+      { id: 'lr-dot-1', d: 'M175 150 A 6 6 0 1 0 175 149 Z', mirrorId: 'll-dot-1' },
+      { id: 'lr-dot-2', d: 'M155 175 A 3 3 0 1 0 155 174 Z', mirrorId: 'll-dot-2' },
 
-  // Lower Right Wing - Main Outline
-  { id: 'lr-outer', d: 'M100 100 C130 130, 170 180, 180 160 C190 140, 150 110, 100 100' },
-  // Lower Right Wing - Interior Cells
-  { id: 'lr-cell1', d: 'M105 110 C125 140, 155 165, 165 150 C170 140, 140 120, 105 110' },
-  { id: 'lr-cell2', d: 'M115 115 C130 135, 145 155, 150 145 C155 135, 135 125, 115 115' },
-  { id: 'lr-dot1', d: 'M165 170 A 5 5 0 1 0 165 169 Z' },
-  { id: 'lr-dot2', d: 'M145 175 A 4 4 0 1 0 145 174 Z' },
-
-  // Body
-  { id: 'body-tail', d: 'M100 155 C90 140, 90 110, 100 105 C110 110, 110 140, 100 155' },
-  { id: 'body-torso', d: 'M100 105 C90 95, 90 75, 100 65 C110 75, 110 95, 100 105' },
-  { id: 'body-head', d: 'M100 65 C95 60, 95 50, 100 45 C105 50, 105 60, 100 65' },
-  
-  // Antennae
-  { id: 'ant-l', d: 'M98 50 Q85 30 75 15' },
-  { id: 'ant-r', d: 'M102 50 Q115 30 125 15' }
+      // Body 
+      { id: 'body-segment-1', d: 'M100 45 C105 50, 105 55, 100 60 C95 55, 95 50, 100 45' },
+      { id: 'body-segment-2', d: 'M100 60 C110 75, 110 95, 100 105 C90 95, 90 75, 100 60' },
+      { id: 'body-segment-3', d: 'M100 105 C110 125, 105 155, 100 165 C95 155, 90 125, 100 105' },
+      
+      // Antennae
+      { id: 'ant-l', d: 'M98 48 Q85 30 75 15' },
+      { id: 'ant-r', d: 'M102 48 Q115 30 125 15' }
+    ]
+  },
+  {
+    id: 'lotus',
+    name: 'Sacred Lotus',
+    viewBox: '0 0 200 200',
+    paths: [
+      // Central Petal
+      { id: 'petal-c-outer', d: 'M100 160 C90 140, 80 100, 100 60 C120 100, 110 140, 100 160' },
+      { id: 'petal-c-m1', d: 'M100 150 C95 135, 88 110, 100 80 C112 110, 105 135, 100 150' },
+      { id: 'petal-c-m2', d: 'M100 140 C97 130, 92 115, 100 95 C108 115, 103 130, 100 140' },
+      
+      // Left Upper Petal
+      { id: 'petal-lu-outer', d: 'M95 155 C70 145, 50 110, 70 70 C85 90, 95 130, 95 155', mirrorId: 'petal-ru-outer' },
+      { id: 'petal-lu-m1', d: 'M90 145 C75 140, 60 115, 75 85 C83 100, 90 125, 90 145', mirrorId: 'petal-ru-m1' },
+      { id: 'petal-lu-m2', d: 'M85 135 C75 130, 65 115, 75 95 Q82 110 85 135', mirrorId: 'petal-ru-m2' },
+      
+      // Right Upper Petal
+      { id: 'petal-ru-outer', d: 'M105 155 C130 145, 150 110, 130 70 C115 90, 105 130, 105 155', mirrorId: 'petal-lu-outer' },
+      { id: 'petal-ru-m1', d: 'M110 145 C125 140, 140 115, 125 85 C117 100, 110 125, 110 145', mirrorId: 'petal-lu-m1' },
+      { id: 'petal-ru-m2', d: 'M115 135 C125 130, 135 115, 125 95 Q118 110 115 135', mirrorId: 'petal-lu-m2' },
+      
+      // Left Side Petal
+      { id: 'petal-ls-outer', d: 'M90 160 C60 160, 30 140, 40 100 C55 115, 80 140, 90 160', mirrorId: 'petal-rs-outer' },
+      { id: 'petal-ls-m1', d: 'M85 155 C65 155, 45 140, 52 110 C62 125, 78 145, 85 155', mirrorId: 'petal-rs-m1' },
+      { id: 'petal-ls-m2', d: 'M80 150 C65 150, 55 140, 60 120 Q68 130 80 150', mirrorId: 'petal-rs-m2' },
+      
+      // Right Side Petal
+      { id: 'petal-rs-outer', d: 'M110 160 C140 160, 170 140, 160 100 C145 115, 120 140, 110 160', mirrorId: 'petal-ls-outer' },
+      { id: 'petal-rs-m1', d: 'M115 155 C135 155, 155 140, 148 110 C138 125, 122 145, 115 155', mirrorId: 'petal-ls-m1' },
+      { id: 'petal-rs-m2', d: 'M120 150 C135 150, 145 140, 140 120 Q132 130 120 150', mirrorId: 'petal-ls-m2' },
+      
+      // Lower Petals
+      { id: 'petal-lb-outer', d: 'M95 165 C70 175, 40 170, 50 145 C65 155, 85 160, 95 165', mirrorId: 'petal-rb-outer' },
+      { id: 'petal-lb-m1', d: 'M90 168 Q65 180 55 160 Q75 160 90 168', mirrorId: 'petal-rb-m1' },
+      
+      { id: 'petal-rb-outer', d: 'M105 165 C130 175, 160 170, 150 145 C135 155, 115 160, 105 165', mirrorId: 'petal-lb-outer' },
+      { id: 'petal-rb-m1', d: 'M110 168 Q135 180 145 160 Q125 160 110 168', mirrorId: 'petal-lb-m1' },
+      
+      // Core Detailed
+      { id: 'core-shadow', d: 'M100 158 A 15 10 0 1 0 100 157 Z' },
+      { id: 'core-rim', d: 'M100 155 A 10 6 0 1 0 100 154 Z' },
+      { id: 'core-center', d: 'M100 155 A 5 3 0 1 0 100 154 Z' },
+      { id: 'core-dot-1', d: 'M95 153 A 1 1 0 1 0 95 152 Z' },
+      { id: 'core-dot-2', d: 'M105 153 A 1 1 0 1 0 105 152 Z' },
+      { id: 'core-dot-3', d: 'M100 157 A 1 1 0 1 0 100 156 Z' }
+    ]
+  },
+  {
+    id: 'mandala',
+    name: 'Mandala of Peace',
+    viewBox: '0 0 200 200',
+    paths: [
+      // Detailed Layered Mandala
+      { id: 'm-core', d: 'M100 100 A 8 8 0 1 0 100 92 A 8 8 0 1 0 100 108 Z' },
+      { id: 'm-core-dot', d: 'M100 100 A 3 3 0 1 0 100 97 Z' },
+      
+      // Ring 1 (Petals)
+      { id: 'm-r1-p1', d: 'M100 92 Q105 85 110 92 Q105 100 100 92', mirrorId: 'm-r1-p5' },
+      { id: 'm-r1-p2', d: 'M108 96 Q115 95 115 102 Q108 105 108 96', mirrorId: 'm-r1-p6' },
+      { id: 'm-r1-p3', d: 'M100 108 Q95 115 90 108 Q95 100 100 108', mirrorId: 'm-r1-p7' },
+      { id: 'm-r1-p4', d: 'M92 96 Q85 95 85 102 Q92 105 92 96', mirrorId: 'm-r1-p8' },
+      { id: 'm-r1-p5', d: 'M100 108 Q105 115 110 108 Q105 100 100 108', mirrorId: 'm-r1-p1' },
+      { id: 'm-r1-p6', d: 'M92 104 Q85 105 85 98 Q92 95 92 104', mirrorId: 'm-r1-p2' },
+      { id: 'm-r1-p7', d: 'M100 92 Q95 85 90 92 Q95 100 100 92', mirrorId: 'm-r1-p3' },
+      { id: 'm-r1-p8', d: 'M108 104 Q115 105 115 98 Q108 95 108 104', mirrorId: 'm-r1-p4' },
+      
+      // Ring 2 (Geometric)
+      { id: 'm-r2-s1', d: 'M100 85 L115 92 L100 100 L85 92 Z', mirrorId: 'm-r2-s3' },
+      { id: 'm-r2-s2', d: 'M115 100 L108 115 L100 100 L108 85 Z', mirrorId: 'm-r2-s4' },
+      { id: 'm-r2-s3', d: 'M100 115 L85 108 L100 100 L115 108 Z', mirrorId: 'm-r2-s1' },
+      { id: 'm-r2-s4', d: 'M85 100 L92 85 L100 100 L92 115 Z', mirrorId: 'm-r2-s2' },
+      
+      // Ring 3 (Large Petals)
+      { id: 'm-r3-p1', d: 'M100 75 C120 65, 135 80, 125 100 C115 85, 105 80, 100 75', mirrorId: 'm-r3-p3' },
+      { id: 'm-r3-p2', d: 'M125 100 C135 120, 120 135, 100 125 C115 115, 120 105, 125 100', mirrorId: 'm-r3-p4' },
+      { id: 'm-r3-p3', d: 'M100 125 C80 135, 65 120, 75 100 C85 115, 95 120, 100 125', mirrorId: 'm-r3-p1' },
+      { id: 'm-r3-p4', d: 'M75 100 C65 80, 80 65, 100 75 C85 85, 80 95, 75 100', mirrorId: 'm-r3-p2' },
+      
+      // Ring 4 (Arches)
+      { id: 'm-r4-a1', d: 'M100 60 A 40 40 0 0 1 140 100 L 130 100 A 30 30 0 0 0 100 70 Z', mirrorId: 'm-r4-a3' },
+      { id: 'm-r4-a2', d: 'M140 100 A 40 40 0 0 1 100 140 L 100 130 A 30 30 0 0 0 130 100 Z', mirrorId: 'm-r4-a4' },
+      { id: 'm-r4-a3', d: 'M100 140 A 40 40 0 0 1 60 100 L 70 100 A 30 30 0 0 0 100 130 Z', mirrorId: 'm-r4-a1' },
+      { id: 'm-r4-a4', d: 'M60 100 A 40 40 0 0 1 100 60 L 100 70 A 30 30 0 0 0 70 100 Z', mirrorId: 'm-r4-a2' },
+      
+      // Outer Detail Ring
+      { id: 'm-out-1', d: 'M100 30 Q130 30 150 50 Q170 70 170 100 Q170 130 150 150 Q130 170 100 170 Q70 170 50 150 Q30 130 30 100 Q30 70 50 50 Q70 30 100 30' },
+      { id: 'm-out-f1', d: 'M100 40 Q125 40 140 55 L 140 45 Q125 30 100 30 Z', mirrorId: 'm-out-f3' },
+      { id: 'm-out-f2', d: 'M160 100 Q160 125 145 140 L 155 140 Q170 125 170 100 Z', mirrorId: 'm-out-f4' },
+      { id: 'm-out-f3', d: 'M100 160 Q75 160 60 145 L 60 155 Q75 170 100 170 Z', mirrorId: 'm-out-f1' },
+      { id: 'm-out-f4', d: 'M40 100 Q40 75 55 60 L 45 60 Q30 75 30 100 Z', mirrorId: 'm-out-f2' },
+      
+      // Decorative Dots
+      { id: 'm-d-1', d: 'M100 35 A 2 2 0 1 0 100 34 Z', mirrorId: 'm-d-5' },
+      { id: 'm-d-2', d: 'M145 55 A 2 2 0 1 0 145 54 Z', mirrorId: 'm-d-6' },
+      { id: 'm-d-3', d: 'M165 100 A 2 2 0 1 0 165 99 Z', mirrorId: 'm-d-7' },
+      { id: 'm-d-4', d: 'M145 145 A 2 2 0 1 0 145 144 Z', mirrorId: 'm-d-8' },
+      { id: 'm-d-5', d: 'M100 165 A 2 2 0 1 0 100 164 Z', mirrorId: 'm-d-1' },
+      { id: 'm-d-6', d: 'M55 145 A 2 2 0 1 0 55 144 Z', mirrorId: 'm-d-2' },
+      { id: 'm-d-7', d: 'M35 100 A 2 2 0 1 0 35 99 Z', mirrorId: 'm-d-3' },
+      { id: 'm-d-8', d: 'M55 55 A 2 2 0 1 0 55 54 Z', mirrorId: 'm-d-4' }
+    ]
+  },
+  {
+    id: 'flower',
+    name: 'Desert Rose',
+    viewBox: '0 0 200 200',
+    paths: [
+      // Core
+      { id: 'rose-c-1', d: 'M100 100 A 6 6 0 1 0 100 92 A 6 6 0 1 0 100 108 Z' },
+      { id: 'rose-c-2', d: 'M100 100 A 3 3 0 1 0 100 97 Z' },
+      
+      // Inner Petal Layer
+      { id: 'rose-i1', d: 'M100 94 Q110 85 120 94 Q110 103 100 94', mirrorId: 'rose-i3' },
+      { id: 'rose-i2', d: 'M106 100 Q115 110 106 120 Q97 110 106 100', mirrorId: 'rose-i4' },
+      { id: 'rose-i3', d: 'M100 106 Q90 115 80 106 Q90 97 100 106', mirrorId: 'rose-i1' },
+      { id: 'rose-i4', d: 'M94 100 Q85 90 94 80 Q103 90 94 100', mirrorId: 'rose-i2' },
+      
+      // Middle Petal Layer
+      { id: 'rose-m1', d: 'M100 85 C120 70, 140 85, 130 105 Q115 95 100 85', mirrorId: 'rose-m3' },
+      { id: 'rose-m2', d: 'M115 100 C130 120, 115 140, 95 130 Q105 115 115 100', mirrorId: 'rose-m4' },
+      { id: 'rose-m3', d: 'M100 115 C80 130, 60 115, 70 95 Q85 105 100 115', mirrorId: 'rose-m1' },
+      { id: 'rose-m4', d: 'M85 100 C70 80, 85 60, 105 70 Q95 85 85 100', mirrorId: 'rose-m2' },
+      
+      // Outer Petal Layer (Large)
+      { id: 'rose-o1', d: 'M100 70 C140 40, 180 70, 160 110 Q130 90 100 70', mirrorId: 'rose-o3' },
+      { id: 'rose-o2', d: 'M130 100 C160 140, 130 180, 90 160 Q110 130 130 100', mirrorId: 'rose-o4' },
+      { id: 'rose-o3', d: 'M100 130 C60 160, 20 130, 40 90 Q70 110 100 130', mirrorId: 'rose-o1' },
+      {
+    id: 'rose-o4', d: 'M70 100 C40 60, 70 20, 110 40 Q90 70 70 100', mirrorId: 'rose-o2' },
+      
+      // Decorative Veins
+      { id: 'rose-v1', d: 'M110 60 Q130 50 150 60', mirrorId: 'rose-v3' },
+      { id: 'rose-v2', d: 'M140 120 Q150 140 140 160', mirrorId: 'rose-v4' },
+      { id: 'rose-v3', d: 'M90 140 Q70 150 50 140', mirrorId: 'rose-v1' },
+      { id: 'rose-v4', d: 'M60 80 Q50 60 60 40', mirrorId: 'rose-v2' }
+    ]
+  },
+  {
+    id: 'forest',
+    name: 'Enchanted Forest',
+    viewBox: '0 0 200 200',
+    classicPalette: ['#166534', '#15803d', '#22c55e', '#4ade80', '#86efac', '#fde047'],
+    paths: [
+      // Central Tree Trunk
+      { id: 'tree-trunk', d: 'M90 190 Q90 150 100 120 Q110 150 110 190 Z', number: 1, center: {x: 100, y: 160} },
+      { id: 'tree-base', d: 'M100 180 Q80 185 70 195 Q100 190 130 195 Q120 185 100 180', number: 2, center: {x: 100, y: 190} },
+      
+      // Branches
+      { id: 'branch-l', d: 'M100 140 Q80 130 60 140 Q75 135 100 145 Z', mirrorId: 'branch-r', number: 1, center: {x: 80, y: 140} },
+      { id: 'branch-r', d: 'M100 140 Q120 130 140 140 Q125 135 100 145 Z', mirrorId: 'branch-l', number: 1, center: {x: 120, y: 140} },
+      
+      // Layers of Leaves/Canopy
+      { id: 'leaf-center', d: 'M100 80 Q120 60 100 40 Q80 60 100 80', number: 3, center: {x: 100, y: 60} },
+      { id: 'leaf-lu-1', d: 'M85 90 C60 70, 40 80, 60 100 C70 95, 80 95, 85 90', mirrorId: 'leaf-ru-1', number: 4, center: {x: 65, y: 90} },
+      { id: 'leaf-ru-1', d: 'M115 90 C140 70, 160 80, 140 100 C130 95, 120 95, 115 90', mirrorId: 'leaf-lu-1', number: 4, center: {x: 135, y: 90} },
+      { id: 'leaf-ll-1', d: 'M80 110 C50 100, 30 120, 55 140 C65 130, 75 120, 80 110', mirrorId: 'leaf-rl-1', number: 5, center: {x: 55, y: 125} },
+      { id: 'leaf-rl-1', d: 'M120 110 C150 100, 170 120, 145 140 C135 130, 125 120, 120 110', mirrorId: 'leaf-ll-1', number: 5, center: {x: 145, y: 125} },
+      
+      // Detailed leaves
+      { id: 'leaf-det-1', d: 'M100 60 Q110 50 120 65 Q110 75 100 60', mirrorId: 'leaf-det-2', number: 2, center: {x: 110, y: 65} },
+      { id: 'leaf-det-2', d: 'M100 60 Q90 50 80 65 Q90 75 100 60', mirrorId: 'leaf-det-1', number: 2, center: {x: 90, y: 65} },
+      
+      // Flowers at base
+      { id: 'flower-1-c', d: 'M70 185 A 3 3 0 1 0 70 184 Z', mirrorId: 'flower-2-c', number: 6, center: {x: 70, y: 185} },
+      { id: 'flower-1-p1', d: 'M70 182 Q73 178 76 182 Q73 186 70 182', mirrorId: 'flower-2-p1', number: 6, center: {x: 73, y: 180} },
+      { id: 'flower-2-c', d: 'M130 185 A 3 3 0 1 0 130 184 Z', mirrorId: 'flower-1-c', number: 6, center: {x: 130, y: 185} },
+      { id: 'flower-2-p1', d: 'M130 182 Q127 178 124 182 Q127 186 130 182', mirrorId: 'flower-1-p1', number: 6, center: {x: 127, y: 180} }
+    ]
+  },
+  {
+    id: 'nebula',
+    name: 'Cosmic Nebula',
+    viewBox: '0 0 200 200',
+    paths: [
+      // Swirling center
+      { id: 'spiral-1', d: 'M100 100 C120 80, 150 100, 130 130 C110 150, 80 130, 70 100 C60 60, 100 40, 140 60' },
+      { id: 'spiral-2', d: 'M100 100 C80 120, 50 100, 70 70 C90 50, 120 70, 130 100 C140 140, 100 160, 60 140' },
+      
+      // Stars
+      { id: 'star-1', d: 'M160 40 L163 47 L170 50 L163 53 L160 60 L157 53 L150 50 L157 47 Z' },
+      { id: 'star-2', d: 'M40 150 L42 154 L46 156 L42 158 L40 162 L38 158 L34 156 L38 154 Z' },
+      { id: 'star-3', d: 'M180 160 L182 163 L185 165 L182 167 L180 170 L178 167 L175 165 L178 163 Z' },
+      
+      // Planets
+      { id: 'planet-1', d: 'M50 50 A 10 10 0 1 0 50 49 Z' },
+      { id: 'ring-1-f', d: 'M35 55 Q50 65 65 55 L 63 52 Q50 60 37 52 Z' },
+      { id: 'ring-1-b', d: 'M35 45 Q50 35 65 45 L 63 48 Q50 40 37 48 Z' },
+      
+      // More stars
+      { id: 'star-dot-1', d: 'M120 30 A 1.5 1.5 0 1 0 120 29 Z' },
+      { id: 'star-dot-2', d: 'M80 170 A 1.5 1.5 0 1 0 80 169 Z' },
+      { id: 'star-dot-3', d: 'M180 100 A 2 2 0 1 0 180 99 Z' },
+      { id: 'star-dot-4', d: 'M20 80 A 1.5 1.5 0 1 0 20 79 Z' }
+    ]
+  },
+  {
+    id: 'harmony',
+    name: 'Geometric Harmony',
+    viewBox: '0 0 200 200',
+    classicPalette: ['#4f46e5', '#7c3aed', '#c026d3', '#db2777', '#f43f5e', '#fb923c'],
+    paths: [
+      // Central Hexagon
+      { id: 'hex-core', d: 'M100 70 L126 85 L126 115 L100 130 L74 115 L74 85 Z', number: 1, center: {x: 100, y: 100} },
+      
+      // Triangular radiation
+      { id: 'tri-u', d: 'M100 70 L115 45 L85 45 Z', mirrorId: 'tri-d', number: 2, center: {x: 100, y: 55} },
+      { id: 'tri-d', d: 'M100 130 L115 155 L85 155 Z', mirrorId: 'tri-u', number: 2, center: {x: 100, y: 145} },
+      { id: 'tri-ur', d: 'M126 85 L150 70 L150 100 Z', mirrorId: 'tri-ul', number: 3, center: {x: 140, y: 85} },
+      { id: 'tri-ul', d: 'M74 85 L50 70 L50 100 Z', mirrorId: 'tri-ur', number: 3, center: {x: 60, y: 85} },
+      { id: 'tri-lr', d: 'M126 115 L150 130 L150 100 Z', mirrorId: 'tri-ll', number: 4, center: {x: 140, y: 115} },
+      { id: 'tri-ll', d: 'M74 115 L50 130 L50 100 Z', mirrorId: 'tri-lr', number: 4, center: {x: 60, y: 115} },
+      
+      // Circles
+      { id: 'circ-ur', d: 'M150 70 A 20 20 0 1 0 150 69 Z', number: 5, center: {x: 150, y: 70} },
+      { id: 'circ-ul', d: 'M50 70 A 20 20 0 1 0 50 69 Z', number: 5, center: {x: 50, y: 70} },
+      { id: 'circ-lr', d: 'M150 130 A 20 20 0 1 0 150 129 Z', number: 5, center: {x: 150, y: 130} },
+      { id: 'circ-ll', d: 'M50 130 A 20 20 0 1 0 50 129 Z', number: 5, center: {x: 50, y: 130} },
+      { id: 'circ-u', d: 'M100 40 A 15 15 0 1 0 100 39 Z', number: 6, center: {x: 100, y: 40} },
+      { id: 'circ-d', d: 'M100 160 A 15 15 0 1 0 100 159 Z', number: 6, center: {x: 100, y: 160} },
+      
+      // Outer border frame
+      { id: 'frame-tl', d: 'M10 10 L40 10 L10 40 Z', number: 1, center: {x: 20, y: 20} },
+      { id: 'frame-tr', d: 'M190 10 L160 10 L190 40 Z', number: 1, center: {x: 180, y: 20} },
+      { id: 'frame-bl', d: 'M10 190 L40 190 L10 160 Z', number: 1, center: {x: 20, y: 180} },
+      { id: 'frame-br', d: 'M190 190 L160 190 L190 160 Z', number: 1, center: {x: 180, y: 180} }
+    ]
+  }
 ];
 
 export default function ZenColoring() {
-  const [selectedColor, setSelectedColor] = useState(PALETTE[4]);
-  const [fills, setFills] = useState<Record<string, string>>({});
+  const [activePalette, setActivePalette] = useState<PaletteName>('celestial');
+  const [selectedColor, setSelectedColor] = useState(PALETTES.celestial[4]);
+  const [activeArtworkId, setActiveArtworkId] = useState('butterfly');
+  const [fills, setFills] = useState<Record<string, Record<string, string>>>({});
+  const [symmetryMode, setSymmetryMode] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
+  const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
+  const [loadingSession, setLoadingSession] = useState(false);
+  const [isClassicMode, setIsClassicMode] = useState(false);
+  const [hintPathId, setHintPathId] = useState<string | null>(null);
+
+  const currentArtwork = ARTWORKS.find(a => a.id === activeArtworkId) || ARTWORKS[0];
+  const currentFills = fills[activeArtworkId] || {};
+
+  const requestAISession = async () => {
+    setLoadingSession(true);
+    try {
+      const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await genAI.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: "You are the companion behind Serenity Flow. Set up a new coloring session for the user. Provide a soothing intro, a theme-based palette (4 colors with hex and theme name), a mindfulness prompt for middle of coloring, and a completion affirmation. Output JSON.",
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              therapeutic_intro: { type: Type.STRING },
+              palette: { 
+                type: Type.OBJECT,
+                properties: {
+                  "1": { type: Type.OBJECT, properties: { hex: { type: Type.STRING }, theme: { type: Type.STRING } } },
+                  "2": { type: Type.OBJECT, properties: { hex: { type: Type.STRING }, theme: { type: Type.STRING } } },
+                  "3": { type: Type.OBJECT, properties: { hex: { type: Type.STRING }, theme: { type: Type.STRING } } },
+                  "4": { type: Type.OBJECT, properties: { hex: { type: Type.STRING }, theme: { type: Type.STRING } } }
+                }
+              },
+              mid_coloring_prompt: { type: Type.STRING },
+              completion_affirmation: { type: Type.STRING }
+            }
+          }
+        }
+      });
+      
+      const data = JSON.parse(response.text);
+      setSessionInfo(data);
+      setActivePalette('ai');
+      setSelectedColor(data.palette["1"].hex);
+    } catch (e) {
+      console.error("Failed to fetch AI session", e);
+    } finally {
+      setLoadingSession(false);
+    }
+  };
+
+  useEffect(() => {
+    const saved = localStorage.getItem('serenity-flow-fills');
+    if (saved) {
+      try {
+        setFills(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load saved state', e);
+      }
+    }
+  }, []);
+
+  const handleSave = () => {
+    localStorage.setItem('serenity-flow-fills', JSON.stringify(fills));
+    setSaveStatus('saved');
+    setTimeout(() => setSaveStatus('idle'), 2000);
+  };
 
   const handleFill = (id: string) => {
     if (id.startsWith('ant')) return;
-    setFills(prev => ({ ...prev, [id]: selectedColor }));
+    
+    if (isClassicMode) {
+      const path = currentArtwork.paths.find(p => p.id === id);
+      if (path && path.number) {
+        const selectedIndex = currentArtwork.classicPalette?.indexOf(selectedColor);
+        if (selectedIndex !== (path.number - 1)) {
+          // Wrong color feedback? Maybe a shake?
+          return;
+        }
+      }
+    }
+
+    setFills(prev => {
+      const artFills = { ...(prev[activeArtworkId] || {}) };
+      artFills[id] = selectedColor;
+      
+      if (symmetryMode) {
+        const path = currentArtwork.paths.find(p => p.id === id);
+        if (path?.mirrorId) {
+          artFills[path.mirrorId] = selectedColor;
+        }
+      }
+      
+      return { ...prev, [activeArtworkId]: artFills };
+    });
+    
+    if (id === hintPathId) setHintPathId(null);
+  };
+
+  const toggleClassicMode = () => {
+    setIsClassicMode(!isClassicMode);
+    if (!isClassicMode && currentArtwork.classicPalette) {
+      setActivePalette('classic');
+      setSelectedColor(currentArtwork.classicPalette[0]);
+    } else {
+      setActivePalette('celestial');
+    }
+    setFills(prev => ({ ...prev, [activeArtworkId]: {} })); // Reset on mode switch for clarity
+  };
+
+  const handleHint = () => {
+    if (!isClassicMode || !currentArtwork.classicPalette) return;
+    const selectedNumber = currentArtwork.classicPalette.indexOf(selectedColor) + 1;
+    const remainingPaths = currentArtwork.paths.filter(p => p.number === selectedNumber && !currentFills[p.id]);
+    if (remainingPaths.length > 0) {
+      const randomPath = remainingPaths[Math.floor(Math.random() * remainingPaths.length)];
+      setHintPathId(randomPath.id);
+      setTimeout(() => setHintPathId(null), 3000);
+    }
   };
 
   const handleReset = () => {
-    if (window.confirm('Are you sure you want to clear your beautiful butterfly?')) {
-      setFills({});
+    if (window.confirm(`Clear your ${currentArtwork.name}?`)) {
+      setFills(prev => ({ ...prev, [activeArtworkId]: {} }));
     }
   };
 
   return (
     <div className="flex flex-col items-center pb-32">
-      <div className="flex items-center justify-between w-full mb-8">
-        <h2 className="text-3xl font-serif text-sky-900">Zen Color</h2>
-        <button 
-          onClick={handleReset}
-          className="text-xs uppercase tracking-widest text-sky-900/40 hover:text-sky-900 transition-opacity"
-        >
-          Reset
-        </button>
+      {/* Header & Controls */}
+      <div className="w-full mb-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-8 w-full">
+            <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-sky-500/10 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-sky-500" />
+                </div>
+                <div>
+                    <h2 className="text-2xl font-serif text-sky-900">Coloring Sanctuary</h2>
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-sky-900/30">Mindful Expression</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-3">
+                <button
+                  onClick={toggleClassicMode}
+                  className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+                    isClassicMode 
+                      ? 'bg-sky-500 text-white shadow-lg' 
+                      : 'bg-white/60 text-sky-900/40 hover:bg-white/80 border border-white/60'
+                  }`}
+                >
+                  {isClassicMode ? 'Classic Mode' : 'Zen Mode'}
+                </button>
+                <div className="w-px h-8 bg-sky-900/10 mx-1" />
+                <button
+                  onClick={requestAISession}
+                  disabled={loadingSession}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+                    loadingSession 
+                      ? 'bg-sky-200 text-sky-400 cursor-not-allowed' 
+                      : 'bg-sky-900 text-white hover:bg-sky-800 shadow-xl shadow-sky-900/10 active:scale-95'
+                  }`}
+                >
+                  {loadingSession ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                  ) : (
+                    <Wand2 className="w-4 h-4" />
+                  )}
+                  {loadingSession ? 'Preparing Sanctuary...' : 'Guided Session'}
+                </button>
+                <div className="w-px h-8 bg-sky-900/10 mx-1" />
+                <button
+                  onClick={handleSave}
+                  className={`p-2.5 rounded-full transition-all flex items-center gap-2 ${
+                    saveStatus === 'saved' 
+                      ? 'bg-green-500/20 text-green-600' 
+                      : 'bg-white/60 text-sky-900/40 hover:bg-white/80 shadow-sm'
+                  }`}
+                >
+                  <Save className="w-4.5 h-4.5" />
+                </button>
+                <button
+                  onClick={() => setSymmetryMode(!symmetryMode)}
+                  className={`p-2.5 rounded-full transition-all ${
+                    symmetryMode 
+                      ? 'bg-sky-500 text-white shadow-lg' 
+                      : 'bg-white/60 text-sky-900/40'
+                  }`}
+                >
+                  <ArrowLeftRight className="w-4.5 h-4.5" />
+                </button>
+                <button 
+                  onClick={handleReset}
+                  className="text-xs uppercase tracking-widest text-sky-900/40 hover:text-sky-900 px-2"
+                >
+                  Clear
+                </button>
+            </div>
+        </div>
+
+        <AnimatePresence>
+          {sessionInfo && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="w-full mb-8"
+            >
+              <div className="p-6 rounded-[2rem] bg-sky-900 text-white/90 border border-white/10 shadow-2xl relative overflow-hidden">
+                 <div className="absolute top-0 right-0 p-8 opacity-10">
+                    <Sparkles className="w-24 h-24" />
+                 </div>
+                 <p className="text-lg font-serif italic mb-2 relative z-10">
+                   "{sessionInfo.therapeutic_intro}"
+                 </p>
+                 <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold opacity-50 relative z-10">
+                    <Sparkles className="w-3 h-3" />
+                    AI Guided Intention
+                 </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Artwork Switcher */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {ARTWORKS.map(art => (
+            <button
+              key={art.id}
+              onClick={() => setActiveArtworkId(art.id)}
+              className={`px-4 py-2 rounded-full text-xs font-serif whitespace-nowrap transition-all border ${
+                activeArtworkId === art.id 
+                  ? 'bg-sky-900 text-white border-sky-900 shadow-md' 
+                  : 'bg-white/40 text-sky-900/60 border-white/60 hover:bg-white/60'
+              }`}
+            >
+              {art.name}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <p className="text-sm text-sky-900/60 italic font-light text-center mb-8">
-        Bring the butterfly to life. Select a color and tap a section to paint.
+      <p className="text-sm text-sky-900/40 italic font-light text-center mb-8">
+        “Every stroke is a breath. Every color is a thought released.”
       </p>
 
       {/* Canvas */}
-      <div className="mb-12 bg-white/40 backdrop-blur-xl rounded-3xl p-6 w-full max-w-[360px] aspect-square flex items-center justify-center relative shadow-2xl border border-white/80 overflow-hidden">
-        <div className="absolute inset-0 bg-sky-400/5 mix-blend-overlay"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.4)_0%,transparent_70%)]"></div>
+      <div className="mb-12 bg-white/30 backdrop-blur-2xl rounded-[2.5rem] p-8 w-full max-w-[400px] aspect-square flex items-center justify-center relative shadow-[0_32px_64px_-16px_rgba(56,189,248,0.2)] border border-white/80 transition-all">
+        <div className="absolute inset-0 bg-sky-200/5 mix-blend-overlay"></div>
         
-        <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-2xl relative z-10 filter-glow">
-          <defs>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="1.5" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-            
-            <linearGradient id="wing-shine" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="white" stopOpacity="0.4" />
-              <stop offset="50%" stopColor="white" stopOpacity="0" />
-              <stop offset="100%" stopColor="black" stopOpacity="0.1" />
-            </linearGradient>
+        <motion.div
+          key={activeArtworkId}
+          initial={{ opacity: 0, scale: 0.95, rotate: -2 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          className="w-full h-full"
+        >
+          <svg viewBox={currentArtwork.viewBox} className="w-full h-full drop-shadow-xl relative z-10 filter-glow">
+            <defs>
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+              
+              <linearGradient id="brush-shine" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="white" stopOpacity="0.4" />
+                <stop offset="50%" stopColor="white" stopOpacity="0" />
+                <stop offset="100%" stopColor="black" stopOpacity="0.1" />
+              </linearGradient>
+            </defs>
 
-            <radialGradient id="soft-glow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="white" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="white" stopOpacity="0" />
-            </radialGradient>
-          </defs>
+            {currentArtwork.paths.map((path) => {
+              const isAnt = path.id.startsWith('ant');
+              const isFilled = !!currentFills[path.id];
+              const isHinted = hintPathId === path.id;
+              
+              // In classic mode, highlight paths matching selected color
+              const isTargetNumber = isClassicMode && currentArtwork.classicPalette && 
+                path.number === (currentArtwork.classicPalette.indexOf(selectedColor) + 1) && !isFilled;
 
-          {BUTTERFLY_PATHS.map((path) => {
-            const isAnt = path.id.startsWith('ant');
-            const isBody = path.id.startsWith('body');
-            const isDot = path.id.includes('dot');
-            const isOuter = path.id.includes('outer');
-            
-            let defaultFill = 'rgba(56, 189, 248, 0.1)';
-            if (isBody) defaultFill = 'rgba(12, 105, 233, 0.4)';
-            if (isDot) defaultFill = 'rgba(255, 255, 255, 0.8)';
-
-            return (
-              <g key={path.id} filter="url(#glow)">
-                <path
-                  d={path.d}
-                  fill={isAnt ? 'none' : (fills[path.id] || defaultFill)}
-                  stroke="rgba(56, 189, 248, 0.4)"
-                  strokeWidth={isAnt ? 1.5 : (isOuter ? 1 : 0.8)}
-                  strokeLinecap="round"
-                  onClick={() => handleFill(path.id)}
-                  className={`${isAnt ? '' : 'cursor-pointer hover:opacity-80 transition-all duration-500'} ${isOuter ? 'hover:scale-[1.01]' : ''}`}
-                  style={isAnt ? {} : { transition: 'fill 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                />
-                {!isAnt && !isDot && (
+              return (
+                <g key={path.id} filter="url(#glow)">
                   <path
                     d={path.d}
-                    fill="url(#wing-shine)"
-                    className="pointer-events-none mix-blend-overlay"
+                    fill={isAnt ? 'none' : (currentFills[path.id] || (isTargetNumber ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.4)'))}
+                    stroke={isTargetNumber ? 'rgba(56, 189, 248, 0.6)' : "rgba(56, 189, 248, 0.25)"}
+                    strokeWidth={isAnt ? 1.5 : (isTargetNumber ? 2 : 1)}
+                    strokeLinecap="round"
+                    onClick={() => handleFill(path.id)}
+                    className={`${isAnt ? '' : 'cursor-pointer hover:stroke-sky-500/50 transition-all duration-700'} ${isHinted ? 'animate-pulse stroke-sky-500 stroke-2' : ''}`}
+                    style={isAnt ? {} : { 
+                      transition: 'fill 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
                   />
-                )}
-                {isOuter && (
-                  <path
-                    d={path.d}
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="0.5"
-                    strokeOpacity="0.3"
-                    className="pointer-events-none"
-                  />
-                )}
-              </g>
-            );
-          })}
-        </svg>
+                  {!isAnt && (
+                    <>
+                      <path
+                        d={path.d}
+                        fill="url(#brush-shine)"
+                        className="pointer-events-none mix-blend-overlay opacity-40"
+                      />
+                      {isClassicMode && path.number && path.center && !isFilled && (
+                        <text
+                          x={path.center.x}
+                          y={path.center.y}
+                          fontSize="6"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          className="pointer-events-none fill-sky-900/40 font-bold select-none"
+                        >
+                          {path.number}
+                        </text>
+                      )}
+                    </>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </motion.div>
       </div>
 
       {/* Palette Tools */}
-      <div className="w-full">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Palette className="w-4 h-4 text-sky-500" />
-            <span className="text-xs uppercase tracking-widest text-sky-900/60 font-medium">Celestial Palette</span>
-          </div>
-        </div>
-        
-        <div className="bg-white/40 backdrop-blur-xl p-5 rounded-3xl border border-white/60 shadow-xl">
-          <div className="grid grid-cols-6 gap-3">
-            {PALETTE.map((color) => (
-              <button
-                key={color}
-                onClick={() => setSelectedColor(color)}
-                className="relative w-full aspect-square rounded-2xl transition-all hover:scale-110 active:scale-95 shadow-inner border border-white/20"
-                style={{ 
-                  backgroundColor: color,
-                  boxShadow: selectedColor === color ? `0 0 15px ${color}88` : 'none'
-                }}
+      <div className="w-full space-y-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-sky-500/10 flex items-center justify-center">
+                <Palette className="w-4 h-4 text-sky-500" />
+              </div>
+              <span className="text-xs uppercase tracking-[0.2em] font-bold text-sky-900/40">
+                {activePalette === 'classic' ? 'Challenge Palette' : PALETTE_NAMES.find(p => p.id === activePalette)?.label}
+              </span>
+            </div>
+            {isClassicMode && (
+               <button 
+                onClick={handleHint}
+                className="bg-sky-500/10 text-sky-500 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-sky-500/20 transition-colors"
               >
-                {selectedColor === color && (
-                  <motion.div
-                    layoutId="color-check-sky"
-                    className="absolute inset-0 flex items-center justify-center bg-white/20 rounded-2xl backdrop-blur-[1px]"
-                  >
-                    <Check className="w-4 h-4 text-white" />
-                  </motion.div>
-                )}
+                Need a hint?
+              </button>
+            )}
+          </div>
+          
+          <div className="flex gap-1.5 bg-white/60 backdrop-blur-md p-1.5 rounded-full border border-white/80 shadow-sm">
+            {PALETTE_NAMES.filter(p => !isClassicMode || p.id === 'classic').map((palette) => (
+              <button
+                key={palette.id}
+                onClick={() => setActivePalette(palette.id)}
+                className={`px-4 py-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all ${
+                  activePalette === palette.id
+                    ? 'bg-sky-500 text-white shadow-md'
+                    : 'text-sky-900/40 hover:text-sky-900 hover:bg-white/80'
+                }`}
+              >
+                {palette.label}
               </button>
             ))}
           </div>
         </div>
+        
+        <div className="bg-white/40 backdrop-blur-xl p-6 rounded-[2rem] border border-white/80 shadow-lg overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activePalette}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={{
+                hidden: { opacity: 0, y: 10 },
+                visible: {
+                  opacity: 1, y: 0,
+                  transition: { staggerChildren: 0.02 }
+                },
+                exit: {
+                  opacity: 0, y: -10,
+                  transition: { staggerChildren: 0.01, staggerDirection: -1 }
+                }
+              }}
+              className="grid grid-cols-6 gap-3 sm:gap-4"
+            >
+              {activePalette === 'ai' && sessionInfo ? (
+                Object.entries(sessionInfo.palette).map(([key, item]: [string, { hex: string, theme: string }]) => (
+                  <motion.button
+                    key={`ai-${key}`}
+                    variants={{
+                      hidden: { scale: 0.7, opacity: 0 },
+                      visible: { scale: 1, opacity: 1 },
+                      exit: { scale: 0.7, opacity: 0 }
+                    }}
+                    onClick={() => setSelectedColor(item.hex)}
+                    className="relative w-full aspect-square rounded-2xl transition-all hover:scale-110 active:scale-90 shadow-sm border border-white/40 group overflow-hidden"
+                    style={{ 
+                      backgroundColor: item.hex,
+                    }}
+                  >
+                    <div className="absolute inset-x-0 bottom-0 bg-black/40 py-1 text-[8px] text-white opacity-0 group-hover:opacity-100 transition-opacity font-bold truncate px-1">
+                      {item.theme}
+                    </div>
+                    <div className={`absolute inset-0 bg-white/20 transition-opacity ${selectedColor === item.hex ? 'opacity-100' : 'opacity-0'}`} />
+                    {selectedColor === item.hex && (
+                      <motion.div
+                        layoutId="color-check-sky"
+                        className="absolute inset-0 flex items-center justify-center backdrop-blur-[1px]"
+                      >
+                        <div className="bg-white/40 p-1.5 rounded-full shadow-sm">
+                          <Check className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      </motion.div>
+                    )}
+                  </motion.button>
+                ))
+              ) : activePalette === 'classic' && currentArtwork.classicPalette ? (
+                currentArtwork.classicPalette.map((color, index) => {
+                  const count = currentArtwork.paths.filter(p => p.number === (index + 1) && !currentFills[p.id]).length;
+                  const isDone = count === 0;
+                  
+                  return (
+                    <motion.button
+                      key={`classic-${color}`}
+                      variants={{
+                        hidden: { scale: 0.7, opacity: 0 },
+                        visible: { scale: 1, opacity: 1 },
+                        exit: { scale: 0.7, opacity: 0 }
+                      }}
+                      onClick={() => setSelectedColor(color)}
+                      className="relative w-full aspect-square rounded-2xl transition-all hover:scale-110 active:scale-90 shadow-sm border border-white/40 group overflow-hidden"
+                      style={{ 
+                        backgroundColor: isDone ? '#e2e8f0' : color,
+                        opacity: isDone ? 0.3 : 1
+                      }}
+                    >
+                       <div className="absolute top-1 left-2 text-[10px] font-bold text-white mix-blend-difference drop-shadow-sm">
+                        {index + 1}
+                      </div>
+                      {!isDone && (
+                        <div className="absolute bottom-1 right-2 w-5 h-5 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center text-[8px] font-bold text-white">
+                          {count}
+                        </div>
+                      )}
+                      <div className={`absolute inset-0 bg-white/20 transition-opacity ${selectedColor === color ? 'opacity-100' : 'opacity-0'}`} />
+                      {selectedColor === color && !isDone && (
+                        <motion.div
+                          layoutId="color-check-sky"
+                          className="absolute inset-0 flex items-center justify-center backdrop-blur-[1px]"
+                        >
+                          <div className="bg-white/40 p-1.5 rounded-full shadow-sm">
+                            <Check className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        </motion.div>
+                      )}
+                      {isDone && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Check className="w-4 h-4 text-slate-400" />
+                        </div>
+                      )}
+                    </motion.button>
+                  );
+                })
+              ) : (
+                (activePalette !== 'ai') && PALETTES[activePalette as keyof typeof PALETTES]?.map((color) => (
+                  <motion.button
+                    key={`${activePalette}-${color}`}
+                    variants={{
+                      hidden: { scale: 0.7, opacity: 0 },
+                      visible: { scale: 1, opacity: 1 },
+                      exit: { scale: 0.7, opacity: 0 }
+                    }}
+                    onClick={() => setSelectedColor(color)}
+                    className="relative w-full aspect-square rounded-2xl transition-all hover:scale-110 active:scale-90 shadow-sm border border-white/40 group overflow-hidden"
+                    style={{ 
+                      backgroundColor: color,
+                    }}
+                  >
+                    <div className={`absolute inset-0 bg-white/20 transition-opacity ${selectedColor === color ? 'opacity-100' : 'opacity-0 ring-4 ring-inset ring-sky-500/20'}`} />
+                    {selectedColor === color && (
+                      <motion.div
+                        layoutId="color-check-sky"
+                        className="absolute inset-0 flex items-center justify-center backdrop-blur-[1px]"
+                      >
+                        <div className="bg-white/40 p-1.5 rounded-full shadow-sm">
+                          <Check className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      </motion.div>
+                    )}
+                  </motion.button>
+                ))
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        
+        {sessionInfo && Object.values(fills[activeArtworkId] || {}).length > currentArtwork.paths.length * 0.4 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mt-6 p-6 rounded-2xl bg-white/60 border border-white/80 shadow-md"
+          >
+            <p className="text-sm font-serif italic text-sky-900/60 text-center">
+              A gentle check-in: "{sessionInfo.mid_coloring_prompt}"
+            </p>
+          </motion.div>
+        )}
+
+        {sessionInfo && Object.values(fills[activeArtworkId] || {}).length >= currentArtwork.paths.filter(p => !p.id.startsWith('ant')).length && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-8 p-10 rounded-[3rem] bg-gradient-to-br from-sky-400 to-indigo-500 text-white shadow-2xl text-center"
+          >
+            <h4 className="text-3xl font-serif mb-4">Masterpiece Complete</h4>
+            <p className="text-lg opacity-90 italic">"{sessionInfo.completion_affirmation}"</p>
+          </motion.div>
+        )}
       </div>
     </div>
   );
