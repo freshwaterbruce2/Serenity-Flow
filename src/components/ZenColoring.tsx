@@ -34,11 +34,11 @@ const PALETTES = {
 type PaletteName = keyof typeof PALETTES | 'ai' | 'classic';
 
 const PALETTE_NAMES: { id: PaletteName; label: string }[] = [
+  { id: 'classic', label: 'Color by Number' },
   { id: 'celestial', label: 'Celestial' },
   { id: 'pastel', label: 'Pastel' },
   { id: 'earth', label: 'Earth Tones' },
-  { id: 'ai', label: 'AI Guided' },
-  { id: 'classic', label: 'Classic mode' }
+  { id: 'ai', label: 'AI Guided' }
 ];
 
 interface PathObj {
@@ -344,23 +344,129 @@ const ARTWORKS: Artwork[] = [
       { id: 'frame-bl', d: 'M10 190 L40 190 L10 160 Z', number: 1, center: {x: 20, y: 180} },
       { id: 'frame-br', d: 'M190 190 L160 190 L190 160 Z', number: 1, center: {x: 180, y: 180} }
     ]
+  },
+  {
+    id: 'stained-glass',
+    name: 'Stained Glass Sun',
+    viewBox: '0 0 200 200',
+    classicPalette: ['#fbbf24', '#f59e0b', '#ea580c', '#e11d48', '#38bdf8', '#6366f1', '#a855f7'],
+    paths: [
+      { id: 'center-sun', d: 'M100 100 A 20 20 0 1 0 100 99 Z' },
+      { id: 'ray-1', d: 'M100 80 L110 40 L90 40 Z', mirrorId: 'ray-5' },
+      { id: 'ray-2', d: 'M115 85 L150 50 L135 40 Z', mirrorId: 'ray-6' },
+      { id: 'ray-3', d: 'M120 100 L160 110 L160 90 Z', mirrorId: 'ray-7' },
+      { id: 'ray-4', d: 'M115 115 L150 150 L135 160 Z', mirrorId: 'ray-8' },
+      { id: 'ray-5', d: 'M100 120 L110 160 L90 160 Z', mirrorId: 'ray-1' },
+      { id: 'ray-6', d: 'M85 115 L50 150 L65 160 Z', mirrorId: 'ray-2' },
+      { id: 'ray-7', d: 'M80 100 L40 110 L40 90 Z', mirrorId: 'ray-3' },
+      { id: 'ray-8', d: 'M85 85 L50 50 L65 40 Z', mirrorId: 'ray-4' },
+      // Glass shards
+      { id: 'shard-1', d: 'M110 40 L135 40 L150 50 L115 85 Z', mirrorId: 'shard-5' },
+      { id: 'shard-2', d: 'M150 50 L160 90 L120 100 L115 85 Z', mirrorId: 'shard-6' },
+      { id: 'shard-3', d: 'M160 110 L150 150 L115 115 L120 100 Z', mirrorId: 'shard-7' },
+      { id: 'shard-4', d: 'M150 150 L135 160 L110 160 L115 115 Z', mirrorId: 'shard-8' },
+      { id: 'shard-5', d: 'M90 160 L65 160 L50 150 L85 115 Z', mirrorId: 'shard-1' },
+      { id: 'shard-6', d: 'M50 150 L40 110 L80 100 L85 115 Z', mirrorId: 'shard-2' },
+      { id: 'shard-7', d: 'M40 90 L50 50 L85 85 L80 100 Z', mirrorId: 'shard-3' },
+      { id: 'shard-8', d: 'M50 50 L65 40 L90 40 L85 85 Z', mirrorId: 'shard-4' },
+      // Outer rim
+      { id: 'rim-1', d: 'M10 10 L65 40 L50 50 L10 90 Z' },
+      { id: 'rim-2', d: 'M190 10 L135 40 L150 50 L190 90 Z' },
+      { id: 'rim-3', d: 'M190 190 L135 160 L150 150 L190 110 Z' },
+      { id: 'rim-4', d: 'M10 190 L65 160 L50 150 L10 110 Z' },
+    ]
   }
 ];
 
+// Helper to auto-enrich artworks with numbers and centers if missing
+const RAW_ARTWORKS = ARTWORKS;
+const ENRICHED_ARTWORKS = RAW_ARTWORKS.map(art => {
+  const classicColors = art.classicPalette || PALETTES.celestial.slice(0, 8);
+  const numColors = classicColors.length;
+  
+  let currentNum = 1;
+  const assignments: Record<string, number> = {};
+  
+  const newPaths = art.paths.map((p, i) => {
+    let num = p.number;
+    if (num === undefined && !p.id.startsWith('ant')) {
+      if (assignments[p.id]) {
+        num = assignments[p.id];
+      } else if (p.mirrorId && assignments[p.mirrorId]) {
+        num = assignments[p.mirrorId];
+      } else {
+        num = currentNum;
+        assignments[p.id] = num;
+        currentNum = (currentNum % numColors) + 1;
+      }
+    }
+    
+    let center = p.center;
+    if (!center && num !== undefined) {
+      // Find a rough bounding or M coordinate
+      const match = p.d.match(/[M|m]\s*([0-9.-]+)[,\s]+([0-9.-]+)/);
+      if (match) {
+        center = { x: parseFloat(match[1]) + 5, y: parseFloat(match[2]) + 5 }; // offset so it sits loosely inside
+      } else {
+        center = { x: 100, y: 100 };
+      }
+    }
+    
+    return { ...p, number: num, center };
+  });
+  
+  return { ...art, paths: newPaths, classicPalette: classicColors };
+});
+
 export default function ZenColoring() {
-  const [activePalette, setActivePalette] = useState<PaletteName>('celestial');
-  const [selectedColor, setSelectedColor] = useState(PALETTES.celestial[4]);
+  const [activePalette, setActivePalette] = useState<PaletteName>('classic');
+  const [selectedColor, setSelectedColor] = useState('#f43f5e'); // will set properly in useEffect
   const [activeArtworkId, setActiveArtworkId] = useState('butterfly');
   const [fills, setFills] = useState<Record<string, Record<string, string>>>({});
   const [symmetryMode, setSymmetryMode] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [loadingSession, setLoadingSession] = useState(false);
-  const [isClassicMode, setIsClassicMode] = useState(false);
+  const [isClassicMode, setIsClassicMode] = useState(true);
   const [hintPathId, setHintPathId] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
-  const currentArtwork = ARTWORKS.find(a => a.id === activeArtworkId) || ARTWORKS[0];
+  const currentArtwork = ENRICHED_ARTWORKS.find(a => a.id === activeArtworkId) || ENRICHED_ARTWORKS[0];
   const currentFills = fills[activeArtworkId] || {};
+
+  // Auto-select correct next color in classic mode
+  useEffect(() => {
+    if (!isClassicMode || !currentArtwork.classicPalette) return;
+    
+    const selectedIndex = currentArtwork.classicPalette.indexOf(selectedColor);
+    // if currently selected color is fully filled, automatically pick the next available one
+    if (selectedIndex !== -1) {
+      const targetNumber = selectedIndex + 1;
+      const unfilledWithCurrent = currentArtwork.paths.filter(p => !p.id.startsWith('ant') && p.number === targetNumber && !currentFills[p.id]);
+      
+      if (unfilledWithCurrent.length === 0) {
+        // find next
+        for (let i = 0; i < currentArtwork.classicPalette.length; i++) {
+          const num = i + 1;
+          const remaining = currentArtwork.paths.filter(p => p.number === num && !currentFills[p.id]).length;
+          if (remaining > 0) {
+            setSelectedColor(currentArtwork.classicPalette[i]);
+            break;
+          }
+        }
+      }
+    } else {
+       // if selecting an artwork sets an invalid color, set to the first unfilled
+       for (let i = 0; i < currentArtwork.classicPalette.length; i++) {
+          const num = i + 1;
+          const remaining = currentArtwork.paths.filter(p => p.number === num && !currentFills[p.id]).length;
+          if (remaining > 0) {
+            setSelectedColor(currentArtwork.classicPalette[i]);
+            break;
+          }
+       }
+    }
+  }, [currentFills, selectedColor, currentArtwork, isClassicMode]);
 
   const requestAISession = async () => {
     setLoadingSession(true);
@@ -440,7 +546,11 @@ export default function ZenColoring() {
       if (symmetryMode) {
         const path = currentArtwork.paths.find(p => p.id === id);
         if (path?.mirrorId) {
-          artFills[path.mirrorId] = selectedColor;
+          const mirrorPath = currentArtwork.paths.find(p => p.id === path.mirrorId);
+          // Only mirror if it is also a valid target in classic mode
+          if (!isClassicMode || (mirrorPath && mirrorPath.number === path?.number)) {
+            artFills[path.mirrorId] = selectedColor;
+          }
         }
       }
       
@@ -479,7 +589,7 @@ export default function ZenColoring() {
   };
 
   return (
-    <div className="flex flex-col items-center pb-32">
+    <div className="flex flex-col items-center pb-40">
       {/* Header & Controls */}
       <div className="w-full mb-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-8 w-full">
@@ -551,7 +661,7 @@ export default function ZenColoring() {
         </div>
 
         <AnimatePresence>
-          {sessionInfo && (
+          {sessionInfo && activePalette === 'ai' && (
             <motion.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -596,80 +706,118 @@ export default function ZenColoring() {
         “Every stroke is a breath. Every color is a thought released.”
       </p>
 
-      {/* Canvas */}
-      <div className="mb-12 bg-white/30 backdrop-blur-2xl rounded-[2.5rem] p-8 w-full max-w-[400px] aspect-square flex items-center justify-center relative shadow-[0_32px_64px_-16px_rgba(56,189,248,0.2)] border border-white/80 transition-all">
-        <div className="absolute inset-0 bg-sky-200/5 mix-blend-overlay"></div>
-        
-        <motion.div
-          key={activeArtworkId}
-          initial={{ opacity: 0, scale: 0.95, rotate: -2 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-          className="w-full h-full"
-        >
-          <svg viewBox={currentArtwork.viewBox} className="w-full h-full drop-shadow-xl relative z-10 filter-glow">
-            <defs>
-              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="1.5" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-              
-              <linearGradient id="brush-shine" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="white" stopOpacity="0.4" />
-                <stop offset="50%" stopColor="white" stopOpacity="0" />
-                <stop offset="100%" stopColor="black" stopOpacity="0.1" />
-              </linearGradient>
-            </defs>
+        {/* Progress Bar (Overall) */}
+        {isClassicMode && (
+          <div className="w-full max-w-sm mx-auto mb-6 px-4">
+            <div className="h-3 w-full bg-white/40 rounded-full overflow-hidden border border-white/60 shadow-inner">
+              <motion.div 
+                className="h-full bg-sky-500 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${(Object.keys(currentFills).filter(k => !k.startsWith('ant')).length / currentArtwork.paths.filter(p => !p.id.startsWith('ant')).length) * 100}%` }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-2 px-1 text-[10px] uppercase tracking-wider font-bold text-sky-900/40">
+               <span>Progress</span>
+               <span>{Math.round((Object.keys(currentFills).filter(k => !k.startsWith('ant')).length / currentArtwork.paths.filter(p => !p.id.startsWith('ant')).length) * 100)}%</span>
+            </div>
+          </div>
+        )}
 
-            {currentArtwork.paths.map((path) => {
-              const isAnt = path.id.startsWith('ant');
-              const isFilled = !!currentFills[path.id];
-              const isHinted = hintPathId === path.id;
-              
-              // In classic mode, highlight paths matching selected color
-              const isTargetNumber = isClassicMode && currentArtwork.classicPalette && 
-                path.number === (currentArtwork.classicPalette.indexOf(selectedColor) + 1) && !isFilled;
+        {/* Canvas */}
+        <div className="mb-4 bg-white/30 backdrop-blur-2xl rounded-[2.5rem] p-4 sm:p-8 w-full max-w-[500px] aspect-square flex items-center justify-center relative shadow-[0_32px_64px_-16px_rgba(56,189,248,0.2)] border border-white/80 transition-all overflow-hidden">
+          <div className="absolute inset-0 bg-sky-200/5 mix-blend-overlay pointer-events-none"></div>
+          
+          <div className="absolute right-4 top-4 flex flex-col gap-2 z-20">
+            <button onClick={() => setZoomLevel(z => Math.min(z + 0.5, 3))} className="w-8 h-8 bg-white/80 rounded-full shadow-md text-sky-900 font-bold flex items-center justify-center border border-sky-900/10 hover:bg-sky-100 active:scale-95">+</button>
+            <button onClick={() => setZoomLevel(z => Math.max(z - 0.5, 1))} className="w-8 h-8 bg-white/80 rounded-full shadow-md text-sky-900 font-bold flex items-center justify-center border border-sky-900/10 hover:bg-sky-100 active:scale-95">-</button>
+          </div>
 
-              return (
-                <g key={path.id} filter="url(#glow)">
-                  <path
-                    d={path.d}
-                    fill={isAnt ? 'none' : (currentFills[path.id] || (isTargetNumber ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.4)'))}
-                    stroke={isTargetNumber ? 'rgba(56, 189, 248, 0.6)' : "rgba(56, 189, 248, 0.25)"}
-                    strokeWidth={isAnt ? 1.5 : (isTargetNumber ? 2 : 1)}
-                    strokeLinecap="round"
-                    onClick={() => handleFill(path.id)}
-                    className={`${isAnt ? '' : 'cursor-pointer hover:stroke-sky-500/50 transition-all duration-700'} ${isHinted ? 'animate-pulse stroke-sky-500 stroke-2' : ''}`}
-                    style={isAnt ? {} : { 
-                      transition: 'fill 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }}
-                  />
-                  {!isAnt && (
-                    <>
-                      <path
-                        d={path.d}
-                        fill="url(#brush-shine)"
-                        className="pointer-events-none mix-blend-overlay opacity-40"
-                      />
-                      {isClassicMode && path.number && path.center && !isFilled && (
-                        <text
-                          x={path.center.x}
-                          y={path.center.y}
-                          fontSize="6"
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          className="pointer-events-none fill-sky-900/40 font-bold select-none"
-                        >
-                          {path.number}
-                        </text>
-                      )}
-                    </>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
-        </motion.div>
-      </div>
+          <motion.div
+            key={activeArtworkId}
+            initial={{ opacity: 0, scale: 0.95, rotate: -2 }}
+            animate={{ opacity: 1, scale: zoomLevel, rotate: 0 }}
+            className="w-full h-full transform-origin-center transition-transform duration-300"
+          >
+            <svg viewBox={currentArtwork.viewBox} className="w-full h-full drop-shadow-xl relative z-10 filter-glow">
+              <defs>
+                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="1.5" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                
+                <linearGradient id="brush-shine" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="white" stopOpacity="0.4" />
+                  <stop offset="50%" stopColor="white" stopOpacity="0" />
+                  <stop offset="100%" stopColor="black" stopOpacity="0.1" />
+                </linearGradient>
+
+                <pattern id="target-pattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                   <rect width="10" height="10" fill="rgba(0,0,0,0)" />
+                   <circle cx="5" cy="5" r="2" fill="rgba(56, 189, 248, 0.5)" />
+                </pattern>
+              </defs>
+
+              {currentArtwork.paths.map((path) => {
+                const isAnt = path.id.startsWith('ant');
+                const isFilled = !!currentFills[path.id];
+                const isHinted = hintPathId === path.id;
+                
+                // In classic mode, highlight paths matching selected color
+                const isTargetNumber = isClassicMode && currentArtwork.classicPalette && 
+                  path.number === (currentArtwork.classicPalette.indexOf(selectedColor) + 1) && !isFilled;
+
+                // Color calculation:
+                // - Ant = none
+                // - Filled = the saved color
+                // - Target & Unfilled = target-pattern
+                // - Unfilled (not target) = white/40 (classic color-by-number uses a muted or white fill)
+                const fillColor = isAnt ? 'none' : (isFilled ? currentFills[path.id] : (isTargetNumber ? 'url(#target-pattern)' : (isClassicMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.4)')));
+
+                return (
+                  <g key={path.id} filter={(!isClassicMode && !isFilled) ? "url(#glow)" : undefined}>
+                    <path
+                      d={path.d}
+                      fill={fillColor}
+                      stroke={isTargetNumber ? 'rgba(56, 189, 248, 0.8)' : "rgba(100, 116, 139, 0.3)"}
+                      strokeWidth={isTargetNumber ? 1 : 0.5}
+                      strokeLinecap="round"
+                      onClick={() => handleFill(path.id)}
+                      className={`${isAnt ? '' : 'cursor-pointer hover:opacity-80 transition-opacity duration-300'} ${isHinted ? 'animate-pulse' : ''}`}
+                      style={{ 
+                        transition: 'fill 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                    />
+                    {isHinted && !isFilled && (
+                       <path d={path.d} fill="rgba(250, 204, 21, 0.6)" stroke="#facc15" strokeWidth="2" className="pointer-events-none animate-pulse" />
+                    )}
+                    {!isAnt && (
+                      <>
+                        <path
+                          d={path.d}
+                          fill="url(#brush-shine)"
+                          className="pointer-events-none mix-blend-overlay opacity-30"
+                        />
+                        {isClassicMode && path.number && path.center && (!isFilled && (isTargetNumber || zoomLevel > 1.5)) && (
+                          <text
+                            x={path.center.x}
+                            y={path.center.y}
+                            fontSize="6"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            className={`pointer-events-none font-bold select-none transition-colors ${isTargetNumber ? 'fill-sky-700' : 'fill-slate-400'}`}
+                          >
+                            {path.number}
+                          </text>
+                        )}
+                      </>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+          </motion.div>
+        </div>
 
       {/* Palette Tools */}
       <div className="w-full space-y-6">
@@ -693,12 +841,16 @@ export default function ZenColoring() {
             )}
           </div>
           
-          <div className="flex gap-1.5 bg-white/60 backdrop-blur-md p-1.5 rounded-full border border-white/80 shadow-sm">
-            {PALETTE_NAMES.filter(p => !isClassicMode || p.id === 'classic').map((palette) => (
+          <div className="flex gap-1.5 bg-white/60 backdrop-blur-md p-1.5 rounded-full border border-white/80 shadow-sm overflow-x-auto scrollbar-hide max-w-full">
+            {PALETTE_NAMES.map((palette) => (
               <button
                 key={palette.id}
-                onClick={() => setActivePalette(palette.id)}
-                className={`px-4 py-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all ${
+                onClick={() => {
+                  setActivePalette(palette.id);
+                  if (palette.id === 'classic') setIsClassicMode(true);
+                  else setIsClassicMode(false);
+                }}
+                className={`px-4 py-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all whitespace-nowrap ${
                   activePalette === palette.id
                     ? 'bg-sky-500 text-white shadow-md'
                     : 'text-sky-900/40 hover:text-sky-900 hover:bg-white/80'
@@ -710,7 +862,7 @@ export default function ZenColoring() {
           </div>
         </div>
         
-        <div className="bg-white/40 backdrop-blur-xl p-6 rounded-[2rem] border border-white/80 shadow-lg overflow-hidden">
+        <div className="bg-white/40 backdrop-blur-xl p-4 sm:p-6 rounded-[2rem] border border-white/80 shadow-lg w-full">
           <AnimatePresence mode="wait">
             <motion.div
               key={activePalette}
@@ -728,7 +880,7 @@ export default function ZenColoring() {
                   transition: { staggerChildren: 0.01, staggerDirection: -1 }
                 }
               }}
-              className="grid grid-cols-6 gap-3 sm:gap-4"
+              className={activePalette === 'classic' ? "flex gap-4 overflow-x-auto pb-4 pt-2 px-2 scrollbar-hide" : "grid grid-cols-6 gap-3 sm:gap-4"}
             >
               {activePalette === 'ai' && sessionInfo ? (
                 Object.entries(sessionInfo.palette).map(([key, item]: [string, { hex: string, theme: string }]) => (
@@ -763,8 +915,11 @@ export default function ZenColoring() {
                 ))
               ) : activePalette === 'classic' && currentArtwork.classicPalette ? (
                 currentArtwork.classicPalette.map((color, index) => {
-                  const count = currentArtwork.paths.filter(p => p.number === (index + 1) && !currentFills[p.id]).length;
-                  const isDone = count === 0;
+                  const total = currentArtwork.paths.filter(p => p.number === (index + 1) && !p.id.startsWith('ant')).length;
+                  const remaining = currentArtwork.paths.filter(p => p.number === (index + 1) && !currentFills[p.id] && !p.id.startsWith('ant')).length;
+                  const isDone = total > 0 && remaining === 0;
+                  const progress = total === 0 ? 100 : ((total - remaining) / total) * 100;
+                  const isSelected = selectedColor === color;
                   
                   return (
                     <motion.button
@@ -775,35 +930,42 @@ export default function ZenColoring() {
                         exit: { scale: 0.7, opacity: 0 }
                       }}
                       onClick={() => setSelectedColor(color)}
-                      className="relative w-full aspect-square rounded-2xl transition-all hover:scale-110 active:scale-90 shadow-sm border border-white/40 group overflow-hidden"
-                      style={{ 
-                        backgroundColor: isDone ? '#e2e8f0' : color,
-                        opacity: isDone ? 0.3 : 1
-                      }}
+                      className={`relative min-w-[56px] h-14 rounded-full flex-shrink-0 transition-all ${isSelected ? 'scale-110 shadow-lg -translate-y-2' : 'hover:scale-105'} flex items-center justify-center`}
                     >
-                       <div className="absolute top-1 left-2 text-[10px] font-bold text-white mix-blend-difference drop-shadow-sm">
-                        {index + 1}
+                      {/* Circular Progress SVG */}
+                      <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
+                         <circle 
+                           cx="28" cy="28" r="26" 
+                           fill={isDone ? '#e2e8f0' : "white"} 
+                           className="drop-shadow-sm"
+                         />
+                         {!isDone && (
+                           <circle 
+                             cx="28" cy="28" r="26" 
+                             fill="none" 
+                             stroke={color} 
+                             strokeWidth="4" 
+                             strokeDasharray={`${2 * Math.PI * 26}`}
+                             strokeDashoffset={`${2 * Math.PI * 26 * (1 - progress / 100)}`}
+                             strokeLinecap="round"
+                             className="transition-all duration-500"
+                           />
+                         )}
+                      </svg>
+                      
+                      {/* Inner Color Fill */}
+                      <div 
+                        className="w-10 h-10 rounded-full flex items-center justify-center shadow-inner relative z-10"
+                        style={{ backgroundColor: color, opacity: isDone ? 0.4 : 1 }}
+                      >
+                         {!isDone && <span className="text-white text-[12px] font-bold mix-blend-overlay opacity-90">{index + 1}</span>}
+                         {isDone && <Check className="w-5 h-5 text-slate-500 absolute" />}
                       </div>
-                      {!isDone && (
-                        <div className="absolute bottom-1 right-2 w-5 h-5 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center text-[8px] font-bold text-white">
-                          {count}
-                        </div>
-                      )}
-                      <div className={`absolute inset-0 bg-white/20 transition-opacity ${selectedColor === color ? 'opacity-100' : 'opacity-0'}`} />
-                      {selectedColor === color && !isDone && (
-                        <motion.div
-                          layoutId="color-check-sky"
-                          className="absolute inset-0 flex items-center justify-center backdrop-blur-[1px]"
-                        >
-                          <div className="bg-white/40 p-1.5 rounded-full shadow-sm">
-                            <Check className="w-3.5 h-3.5 text-white" />
-                          </div>
-                        </motion.div>
-                      )}
-                      {isDone && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Check className="w-4 h-4 text-slate-400" />
-                        </div>
+                      
+                      {isSelected && !isDone && (
+                         <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-slate-800 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white shadow-sm z-20">
+                           {remaining}
+                         </div>
                       )}
                     </motion.button>
                   );
