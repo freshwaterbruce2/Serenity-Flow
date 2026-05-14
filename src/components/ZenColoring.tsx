@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
-import { Palette, Check, ArrowLeftRight, Save, Download, Sparkles, Wand2 } from 'lucide-react';
+import { Palette, Check, ArrowLeftRight, Save, Download, Sparkles, Wand2, ChevronLeft, Brush } from 'lucide-react';
 
 interface SessionInfo {
   therapeutic_intro: string;
@@ -56,9 +56,77 @@ interface Artwork {
   paths: PathObj[];
   viewBox: string;
   classicPalette?: string[];
+  category?: 'Butterflies' | 'Nature' | 'Geometric' | 'Abstract' | 'Love';
 }
 
 const ARTWORKS: Artwork[] = [
+  {
+    id: 'monarch-journey',
+    name: 'Monarch Journey',
+    viewBox: '0 0 200 200',
+    category: 'Butterflies',
+    classicPalette: ['#f97316', '#ea580c', '#c2410c', '#fcd34d', '#0f172a', '#e2e8f0'],
+    paths: [
+      { id: 'mj-ol', d: 'M100 100 C70 40, 20 20, 20 60 C20 100, 60 120, 100 100', number: 1, center: {x: 50, y: 70} },
+      { id: 'mj-or', d: 'M100 100 C130 40, 180 20, 180 60 C180 100, 140 120, 100 100', number: 1, center: {x: 150, y: 70} },
+      { id: 'mj-il1', d: 'M90 95 C65 60, 40 40, 40 65 C40 85, 65 100, 90 95', number: 2, center: {x: 65, y: 75} },
+      { id: 'mj-ir1', d: 'M110 95 C135 60, 160 40, 160 65 C160 85, 135 100, 110 95', number: 2, center: {x: 135, y: 75} },
+      { id: 'mj-il2', d: 'M80 85 C60 60, 50 50, 50 65 C50 75, 65 90, 80 85', number: 3, center: {x: 65, y: 70} },
+      { id: 'mj-ir2', d: 'M120 85 C140 60, 150 50, 150 65 C150 75, 135 90, 120 85', number: 3, center: {x: 135, y: 70} },
+      { id: 'mj-dot-l1', d: 'M30 65 A 3 3 0 1 0 30 64 Z', number: 6, center: {x: 30, y: 65} },
+      { id: 'mj-dot-r1', d: 'M170 65 A 3 3 0 1 0 170 64 Z', number: 6, center: {x: 170, y: 65} },
+      { id: 'mj-ll', d: 'M100 100 C70 140, 40 160, 40 140 C40 120, 70 110, 100 100', number: 1, center: {x: 60, y: 130} },
+      { id: 'mj-lr', d: 'M100 100 C130 140, 160 160, 160 140 C160 120, 130 110, 100 100', number: 1, center: {x: 140, y: 130} },
+      { id: 'mj-lin1', d: 'M95 105 C75 130, 55 140, 55 135 C55 125, 75 115, 95 105', number: 4, center: {x: 70, y: 125} },
+      { id: 'mj-rin1', d: 'M105 105 C125 130, 145 140, 145 135 C145 125, 125 115, 105 105', number: 4, center: {x: 130, y: 125} },
+      { id: 'mj-body', d: 'M95 40 C105 40, 105 160, 95 160 C85 160, 85 40, 95 40 Z', number: 5, center: {x: 100, y: 100} },
+      { id: 'ant-left', d: 'M95 40 Q80 20 70 10' },
+      { id: 'ant-right', d: 'M105 40 Q120 20 130 10' }
+    ]
+  },
+  {
+    id: 'twin-hearts',
+    name: 'Twin Hearts',
+    viewBox: '0 0 200 200',
+    category: 'Love',
+    classicPalette: ['#f43f5e', '#e11d48', '#be185d', '#fda4af', '#fecdd3', '#16a34a', '#86efac'],
+    paths: [
+      { id: 'lh-out1', d: 'M80 120 C80 120, 30 90, 30 60 C30 40, 60 40, 80 60 Z', number: 1, center: {x: 55, y: 70}, mirrorId: 'rh-out2' },
+      { id: 'lh-out2', d: 'M80 120 C80 120, 130 90, 130 60 C130 40, 100 40, 80 60 Z', number: 2, center: {x: 105, y: 70}, mirrorId: 'rh-out1' },
+      { id: 'lh-in1', d: 'M80 105 C80 105, 45 85, 45 65 C45 50, 65 50, 80 65 Z', number: 3, center: {x: 65, y: 70}, mirrorId: 'rh-in2' },
+      { id: 'lh-in2', d: 'M80 105 C80 105, 115 85, 115 65 C115 50, 95 50, 80 65 Z', number: 4, center: {x: 95, y: 70}, mirrorId: 'rh-in1' },
+      { id: 'rh-out1', d: 'M130 140 C130 140, 80 110, 80 80 C80 60, 110 60, 130 80 Z', number: 2, center: {x: 105, y: 90}, mirrorId: 'lh-out2' },
+      { id: 'rh-out2', d: 'M130 140 C130 140, 180 110, 180 80 C180 60, 150 60, 130 80 Z', number: 1, center: {x: 155, y: 90}, mirrorId: 'lh-out1' },
+      { id: 'rh-in1', d: 'M130 125 C130 125, 95 105, 95 85 C95 70, 115 70, 130 85 Z', number: 4, center: {x: 115, y: 90}, mirrorId: 'lh-in2' },
+      { id: 'rh-in2', d: 'M130 125 C130 125, 165 105, 165 85 C165 70, 145 70, 130 85 Z', number: 3, center: {x: 145, y: 90}, mirrorId: 'lh-in1' },
+      { id: 'vine-1', d: 'M20 180 Q40 160, 30 140 T50 100 Z', number: 6, center: {x: 35, y: 150} },
+      { id: 'vine-2', d: 'M180 20 Q160 40, 170 60 T150 100 Z', number: 6, center: {x: 165, y: 50} },
+      { id: 'leaf-1', d: 'M30 140 C20 130, 20 120, 30 120 C40 120, 40 130, 30 140 Z', number: 7, center: {x: 30, y: 125} },
+      { id: 'leaf-2', d: 'M50 100 C40 90, 40 80, 50 80 C60 80, 60 90, 50 100 Z', number: 7, center: {x: 50, y: 85} },
+      { id: 'leaf-3', d: 'M170 60 C180 70, 180 80, 170 80 C160 80, 160 70, 170 60 Z', number: 7, center: {x: 170, y: 75} },
+      { id: 'leaf-4', d: 'M150 100 C160 110, 160 120, 150 120 C140 120, 140 110, 150 100 Z', number: 7, center: {x: 150, y: 105} }
+    ]
+  },
+  {
+    id: 'mountain-sunrise',
+    name: 'Mountain Sunrise',
+    viewBox: '0 0 200 200',
+    category: 'Nature',
+    classicPalette: ['#fcd34d', '#f59e0b', '#f43f5e', '#3b82f6', '#1e3a8a', '#10b981', '#064e3b'],
+    paths: [
+      { id: 'sun', d: 'M100 120 A 40 40 0 1 0 100 40 A 40 40 0 1 0 100 120 Z', number: 1, center: {x: 100, y: 80} },
+      { id: 'sky-rays1', d: 'M0 0 L100 80 L0 50 Z', number: 2, center: {x: 30, y: 40} },
+      { id: 'sky-rays2', d: 'M0 0 L100 0 L100 80 Z', number: 3, center: {x: 60, y: 20} },
+      { id: 'sky-rays3', d: 'M100 0 L200 0 L100 80 Z', number: 3, center: {x: 140, y: 20} },
+      { id: 'sky-rays4', d: 'M200 0 L200 50 L100 80 Z', number: 2, center: {x: 170, y: 40} },
+      { id: 'mntn-bg-l', d: 'M0 160 L60 80 L120 160 Z', number: 5, center: {x: 60, y: 130} },
+      { id: 'mntn-bg-r', d: 'M80 160 L140 70 L200 160 Z', number: 5, center: {x: 140, y: 130} },
+      { id: 'mntn-fg-m', d: 'M40 200 L100 110 L160 200 Z', number: 4, center: {x: 100, y: 160} },
+      { id: 'ground', d: 'M0 160 L200 160 L200 200 L0 200 Z', number: 6, center: {x: 100, y: 180} },
+      { id: 'tree-1', d: 'M20 180 L30 150 L40 180 Z', number: 7, center: {x: 30, y: 170} },
+      { id: 'tree-2', d: 'M160 180 L170 140 L180 180 Z', number: 7, center: {x: 170, y: 165} }
+    ]
+  },
   {
     id: 'butterfly',
     name: 'Eternal Butterfly',
@@ -79,40 +147,40 @@ const ARTWORKS: Artwork[] = [
       { id: 'ul-dot-3', d: 'M60 25 A 2 2 0 1 0 60 24 Z', mirrorId: 'ur-dot-3' },
       
       // Right Wing Upper
-      { id: 'ur-outer', d: 'M100 100 C130 40, 195 15, 190 55 C188 70, 170 110, 100 100', mirrorId: 'ul-outer' },
-      { id: 'ur-v1', d: 'M100 100 C120 60, 160 40, 170 55', mirrorId: 'ul-v1' },
-      { id: 'ur-v2', d: 'M100 100 C130 80, 150 90, 160 100', mirrorId: 'ul-v2' },
-      { id: 'ur-cell-1', d: 'M110 95 C125 70, 155 45, 170 55 C175 60, 155 80, 110 95', mirrorId: 'ul-cell-1' },
-      { id: 'ur-cell-2', d: 'M120 85 C135 65, 150 55, 160 60 C165 65, 150 75, 120 85', mirrorId: 'ul-cell-2' },
-      { id: 'ur-cell-3', d: 'M130 75 C140 60, 145 55, 150 60 C155 65, 145 70, 130 75', mirrorId: 'ul-cell-3' },
-      { id: 'ur-det-1', d: 'M150 30 Q160 20 170 35 Q160 45 150 30', mirrorId: 'ul-det-1' },
-      { id: 'ur-det-2', d: 'M175 60 Q185 50 180 70 Q170 80 175 60', mirrorId: 'ul-det-2' },
+      { id: 'ur-outer', d: 'M100 100 C130 40, 195 15, 190 55 C188 70, 170 110, 100 100', mirrorId: 'ul-outer', number: 1, center: {x: 160, y: 50} },
+      { id: 'ur-v1', d: 'M100 100 C120 60, 160 40, 170 55', mirrorId: 'ul-v1', number: 2, center: {x: 140, y: 60} },
+      { id: 'ur-v2', d: 'M100 100 C130 80, 150 90, 160 100', mirrorId: 'ul-v2', number: 3, center: {x: 140, y: 85} },
+      { id: 'ur-cell-1', d: 'M110 95 C125 70, 155 45, 170 55 C175 60, 155 80, 110 95', mirrorId: 'ul-cell-1', number: 4, center: {x: 150, y: 70} },
+      { id: 'ur-cell-2', d: 'M120 85 C135 65, 150 55, 160 60 C165 65, 150 75, 120 85', mirrorId: 'ul-cell-2', number: 5, center: {x: 145, y: 65} },
+      { id: 'ur-cell-3', d: 'M130 75 C140 60, 145 55, 150 60 C155 65, 145 70, 130 75', mirrorId: 'ul-cell-3', number: 6, center: {x: 142, y: 62} },
+      { id: 'ur-det-1', d: 'M150 30 Q160 20 170 35 Q160 45 150 30', mirrorId: 'ul-det-1', number: 1, center: {x: 160, y: 32} },
+      { id: 'ur-det-2', d: 'M175 60 Q185 50 180 70 Q170 80 175 60', mirrorId: 'ul-det-2', number: 2, center: {x: 178, y: 65} },
       { id: 'ur-dot-1', d: 'M185 45 A 4 4 0 1 0 185 44 Z', mirrorId: 'ul-dot-1' },
       { id: 'ur-dot-2', d: 'M160 30 A 3 3 0 1 0 160 29 Z', mirrorId: 'ul-dot-2' },
       { id: 'ur-dot-3', d: 'M140 25 A 2 2 0 1 0 140 24 Z', mirrorId: 'ul-dot-3' },
 
       // Left Wing Lower
-      { id: 'll-outer', d: 'M100 100 C70 130, 30 180, 20 160 C10 140, 50 110, 100 100', mirrorId: 'lr-outer' },
-      { id: 'll-v1', d: 'M100 100 Q60 140 40 160', mirrorId: 'lr-v1' },
-      { id: 'll-cell-1', d: 'M95 110 C80 130, 50 160, 40 155 C35 150, 60 120, 95 110', mirrorId: 'lr-cell-1' },
-      { id: 'll-cell-2', d: 'M85 120 C75 135, 60 150, 55 145 C50 140, 70 125, 85 120', mirrorId: 'lr-cell-2' },
-      { id: 'll-det-1', d: 'M50 170 Q30 180 35 150 Q55 140 50 170', mirrorId: 'lr-det-1' },
+      { id: 'll-outer', d: 'M100 100 C70 130, 30 180, 20 160 C10 140, 50 110, 100 100', mirrorId: 'lr-outer', number: 3, center: {x: 45, y: 140} },
+      { id: 'll-v1', d: 'M100 100 Q60 140 40 160', mirrorId: 'lr-v1', number: 4, center: {x: 65, y: 145} },
+      { id: 'll-cell-1', d: 'M95 110 C80 130, 50 160, 40 155 C35 150, 60 120, 95 110', mirrorId: 'lr-cell-1', number: 5, center: {x: 70, y: 135} },
+      { id: 'll-cell-2', d: 'M85 120 C75 135, 60 150, 55 145 C50 140, 70 125, 85 120', mirrorId: 'lr-cell-2', number: 6, center: {x: 75, y: 130} },
+      { id: 'll-det-1', d: 'M50 170 Q30 180 35 150 Q55 140 50 170', mirrorId: 'lr-det-1', number: 3, center: {x: 45, y: 160} },
       { id: 'll-dot-1', d: 'M25 150 A 6 6 0 1 0 25 149 Z', mirrorId: 'lr-dot-1' },
       { id: 'll-dot-2', d: 'M45 175 A 3 3 0 1 0 45 174 Z', mirrorId: 'lr-dot-2' },
       
       // Right Wing Lower
-      { id: 'lr-outer', d: 'M100 100 C130 130, 170 180, 180 160 C190 140, 150 110, 100 100', mirrorId: 'll-outer' },
-      { id: 'lr-v1', d: 'M100 100 Q140 140 160 160', mirrorId: 'll-v1' },
-      { id: 'lr-cell-1', d: 'M105 110 C120 130, 150 160, 160 155 C165 150, 140 120, 105 110', mirrorId: 'll-cell-1' },
-      { id: 'lr-cell-2', d: 'M115 120 C125 135, 140 150, 145 145 C150 140, 130 125, 115 120', mirrorId: 'll-cell-2' },
-      { id: 'lr-det-1', d: 'M150 170 Q170 180 165 150 Q145 140 150 170', mirrorId: 'll-det-1' },
+      { id: 'lr-outer', d: 'M100 100 C130 130, 170 180, 180 160 C190 140, 150 110, 100 100', mirrorId: 'll-outer', number: 3, center: {x: 155, y: 140} },
+      { id: 'lr-v1', d: 'M100 100 Q140 140 160 160', mirrorId: 'll-v1', number: 4, center: {x: 135, y: 145} },
+      { id: 'lr-cell-1', d: 'M105 110 C120 130, 150 160, 160 155 C165 150, 140 120, 105 110', mirrorId: 'll-cell-1', number: 5, center: {x: 130, y: 135} },
+      { id: 'lr-cell-2', d: 'M115 120 C125 135, 140 150, 145 145 C150 140, 130 125, 115 120', mirrorId: 'll-cell-2', number: 6, center: {x: 125, y: 130} },
+      { id: 'lr-det-1', d: 'M150 170 Q170 180 165 150 Q145 140 150 170', mirrorId: 'll-det-1', number: 3, center: {x: 155, y: 160} },
       { id: 'lr-dot-1', d: 'M175 150 A 6 6 0 1 0 175 149 Z', mirrorId: 'll-dot-1' },
       { id: 'lr-dot-2', d: 'M155 175 A 3 3 0 1 0 155 174 Z', mirrorId: 'll-dot-2' },
 
       // Body 
-      { id: 'body-segment-1', d: 'M100 45 C105 50, 105 55, 100 60 C95 55, 95 50, 100 45' },
-      { id: 'body-segment-2', d: 'M100 60 C110 75, 110 95, 100 105 C90 95, 90 75, 100 60' },
-      { id: 'body-segment-3', d: 'M100 105 C110 125, 105 155, 100 165 C95 155, 90 125, 100 105' },
+      { id: 'body-segment-1', d: 'M100 45 C105 50, 105 55, 100 60 C95 55, 95 50, 100 45', number: 6, center: {x: 100, y: 52} },
+      { id: 'body-segment-2', d: 'M100 60 C110 75, 110 95, 100 105 C90 95, 90 75, 100 60', number: 6, center: {x: 100, y: 82} },
+      { id: 'body-segment-3', d: 'M100 105 C110 125, 105 155, 100 165 C95 155, 90 125, 100 105', number: 6, center: {x: 100, y: 135} },
       
       // Antennae
       { id: 'ant-l', d: 'M98 48 Q85 30 75 15' },
@@ -381,6 +449,15 @@ const ARTWORKS: Artwork[] = [
 // Helper to auto-enrich artworks with numbers and centers if missing
 const RAW_ARTWORKS = ARTWORKS;
 const ENRICHED_ARTWORKS = RAW_ARTWORKS.map(art => {
+  let cat = art.category;
+  if (!cat) {
+    if (art.id === 'butterfly') cat = 'Butterflies';
+    else if (art.id === 'lotus' || art.id === 'flower' || art.id === 'forest') cat = 'Nature';
+    else if (art.id === 'mandala' || art.id === 'harmony') cat = 'Geometric';
+    else if (art.id === 'nebula' || art.id === 'stained-glass') cat = 'Abstract';
+    else cat = 'Abstract';
+  }
+
   const classicColors = art.classicPalette || PALETTES.celestial.slice(0, 8);
   const numColors = classicColors.length;
   
@@ -415,10 +492,12 @@ const ENRICHED_ARTWORKS = RAW_ARTWORKS.map(art => {
     return { ...p, number: num, center };
   });
   
-  return { ...art, paths: newPaths, classicPalette: classicColors };
+  return { ...art, paths: newPaths, classicPalette: classicColors, category: cat };
 });
 
 export default function ZenColoring() {
+  const [screen, setScreen] = useState<'gallery' | 'workspace'>('gallery');
+  const [activeCategory, setActiveCategory] = useState<string>('All');
   const [activePalette, setActivePalette] = useState<PaletteName>('classic');
   const [selectedColor, setSelectedColor] = useState('#f43f5e'); // will set properly in useEffect
   const [activeArtworkId, setActiveArtworkId] = useState('butterfly');
@@ -473,7 +552,7 @@ export default function ZenColoring() {
     try {
       const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await genAI.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         contents: "You are the companion behind Serenity Flow. Set up a new coloring session for the user. Provide a soothing intro, a theme-based palette (4 colors with hex and theme name), a mindfulness prompt for middle of coloring, and a completion affirmation. Output JSON.",
         config: {
           responseMimeType: "application/json",
@@ -503,6 +582,7 @@ export default function ZenColoring() {
       setSelectedColor(data.palette["1"].hex);
     } catch (e) {
       console.error("Failed to fetch AI session", e);
+      alert("The AI guiding companion is currently taking a mindful breath. Please try again in a moment.");
     } finally {
       setLoadingSession(false);
     }
@@ -589,20 +669,102 @@ export default function ZenColoring() {
   };
 
   return (
-    <div className="flex flex-col items-center pb-40">
-      {/* Header & Controls */}
-      <div className="w-full mb-8">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-8 w-full">
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-sky-500/10 flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-sky-500" />
-                </div>
-                <div>
-                    <h2 className="text-2xl font-serif text-sky-900">Coloring Sanctuary</h2>
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-sky-900/30">Mindful Expression</p>
-                </div>
-            </div>
-            <div className="flex items-center gap-3">
+    <div className="flex flex-col items-center pb-40 min-h-screen relative">
+      {screen === 'gallery' ? (
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 pt-8">
+           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 w-full border-b border-sky-900/10 pb-6">
+              <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-400 to-indigo-500 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                      <Brush className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                      <h1 className="text-3xl font-serif text-sky-900 leading-tight">Serenity Flow</h1>
+                      <p className="text-xs uppercase tracking-widest font-bold text-sky-900/40">Mindful Coloring Studio</p>
+                  </div>
+              </div>
+           </div>
+           
+           {/* Categories */}
+           <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-8">
+             {['All', 'Butterflies', 'Nature', 'Geometric', 'Abstract', 'Love'].map(cat => (
+               <button 
+                 key={cat} 
+                 onClick={() => setActiveCategory(cat)}
+                 className={`px-5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
+                    activeCategory === cat ? 'bg-sky-500 text-white shadow-md' : 'bg-white/60 text-sky-900/40 hover:bg-white/80 hover:text-sky-900 shadow-sm border border-white/60'
+                 }`}
+               >
+                 {cat}
+               </button>
+             ))}
+           </div>
+           
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+             {ENRICHED_ARTWORKS.filter(art => activeCategory === 'All' || art.category === activeCategory).map(art => {
+               const total = art.paths.filter(p => !p.id.startsWith('ant')).length;
+               const savedFills = fills[art.id] || {};
+               const filledCount = Object.keys(savedFills).filter(k => !k.startsWith('ant') && savedFills[k]).length;
+               const progress = total > 0 ? (filledCount / total) * 100 : 0;
+               return (
+                 <div key={art.id} className="group relative bg-white/40 backdrop-blur-md rounded-[2rem] p-6 border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:border-sky-300 transition-all duration-500 overflow-hidden flex flex-col pt-8 text-left bg-gradient-to-br hover:from-white/60 hover:to-sky-50/60 object-cover">
+                    {/* SVG preview */}
+                    <div className="w-full aspect-square mb-6 transition-transform duration-700 ease-out group-hover:scale-105 pointer-events-none drop-shadow-md bg-white rounded-2xl border border-black/5 p-2">
+                      <svg viewBox={art.viewBox} className="w-full h-full">
+                         {art.paths.map(p => {
+                            const isAnt = p.id.startsWith('ant');
+                            const savedColor = savedFills[p.id];
+                            return (
+                               <path key={p.id} d={p.d} fill={isAnt ? 'none' : (savedColor || '#ffffff')} stroke={savedColor ? "rgba(255,255,255,0.4)" : "#1e293b"} strokeWidth={isAnt ? 1.5 : (savedColor ? 1 : 0.75)} strokeLinecap="round" />
+                            );
+                         })}
+                      </svg>
+                    </div>
+                    <div className="flex flex-col gap-1.5 z-10 bg-white/70 backdrop-blur-md p-4 rounded-3xl border border-white shadow-sm mt-auto">
+                      <h3 className="text-[15px] font-bold text-sky-950 font-serif leading-tight">{art.name}</h3>
+                      <div className="flex items-center justify-between mt-1">
+                         <span className="text-[9px] uppercase font-bold text-sky-900/40 tracking-wider">
+                           {art.category} • {total} parts
+                         </span>
+                         {progress > 0 && (
+                            <span className="text-[10px] font-bold text-sky-600 bg-sky-100 px-2 py-0.5 rounded-full ring-1 ring-sky-200">
+                               {Math.round(progress)}%
+                            </span>
+                         )}
+                      </div>
+                      
+                      {progress > 0 && (
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full mt-2 overflow-hidden border border-black/5 shadow-inner">
+                          <div className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full" style={{ width: `${progress}%` }} />
+                        </div>
+                      )}
+                      
+                      <div className="flex flex-col gap-2 mt-4">
+                         <button onClick={(e) => { e.stopPropagation(); setActiveArtworkId(art.id); setIsClassicMode(true); setActivePalette('classic'); setScreen('workspace'); }} className="w-full py-3 bg-sky-500 text-white rounded-full text-[11px] font-bold uppercase tracking-widest shadow-md hover:bg-sky-600 transition-all active:scale-95">Color By Number</button>
+                         <button onClick={(e) => { e.stopPropagation(); setActiveArtworkId(art.id); setIsClassicMode(false); setActivePalette('celestial'); setScreen('workspace'); }} className="w-full py-3 bg-white text-sky-900 rounded-full text-[11px] font-bold uppercase tracking-widest shadow-sm border border-sky-200 hover:bg-sky-50 transition-all active:scale-95">Zen Mode (Free)</button>
+                      </div>
+                    </div>
+                 </div>
+               );
+             })}
+           </div>
+        </div>
+      ) : (
+        <div className="w-full flex justify-center pb-32 mt-4 sm:mt-8">
+          <div className="w-full max-w-4xl px-4 sm:px-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 border-b border-sky-900/10 pb-6 w-full">
+               <div className="flex items-center gap-4">
+                 <button 
+                   onClick={() => setScreen('gallery')} 
+                   className="w-12 h-12 rounded-full bg-white/80 border border-white shadow-sm flex items-center justify-center text-sky-900 hover:bg-white hover:text-sky-600 transition-all hover:scale-105"
+                 >
+                    <ChevronLeft className="w-5 h-5" />
+                 </button>
+                 <div>
+                     <h2 className="text-2xl font-serif text-sky-950">{currentArtwork.name}</h2>
+                     <p className="text-[10px] uppercase tracking-widest font-bold text-sky-900/40">{currentArtwork.category} • {isClassicMode ? 'Classic By Number' : 'Zen Guided'}</p>
+                 </div>
+               </div>
+               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleClassicMode}
                   className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
@@ -630,7 +792,7 @@ export default function ZenColoring() {
                   )}
                   {loadingSession ? 'Preparing Sanctuary...' : 'Guided Session'}
                 </button>
-                <div className="w-px h-8 bg-sky-900/10 mx-1" />
+                <div className="w-px h-8 bg-sky-900/10 mx-1 hidden sm:block" />
                 <button
                   onClick={handleSave}
                   className={`p-2.5 rounded-full transition-all flex items-center gap-2 ${
@@ -684,28 +846,6 @@ export default function ZenColoring() {
           )}
         </AnimatePresence>
 
-        {/* Artwork Switcher */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {ARTWORKS.map(art => (
-            <button
-              key={art.id}
-              onClick={() => setActiveArtworkId(art.id)}
-              className={`px-4 py-2 rounded-full text-xs font-serif whitespace-nowrap transition-all border ${
-                activeArtworkId === art.id 
-                  ? 'bg-sky-900 text-white border-sky-900 shadow-md' 
-                  : 'bg-white/40 text-sky-900/60 border-white/60 hover:bg-white/60'
-              }`}
-            >
-              {art.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <p className="text-sm text-sky-900/40 italic font-light text-center mb-8">
-        “Every stroke is a breath. Every color is a thought released.”
-      </p>
-
         {/* Progress Bar (Overall) */}
         {isClassicMode && (
           <div className="w-full max-w-sm mx-auto mb-6 px-4">
@@ -725,7 +865,7 @@ export default function ZenColoring() {
         )}
 
         {/* Canvas */}
-        <div className="mb-4 bg-white/30 backdrop-blur-2xl rounded-[2.5rem] p-4 sm:p-8 w-full max-w-[500px] aspect-square flex items-center justify-center relative shadow-[0_32px_64px_-16px_rgba(56,189,248,0.2)] border border-white/80 transition-all overflow-hidden">
+        <div className="mb-6 w-full max-w-[550px] mx-auto aspect-square bg-white/40 backdrop-blur-2xl rounded-[3rem] p-4 sm:p-8 flex items-center justify-center relative shadow-[0_32px_64px_-16px_rgba(56,189,248,0.15)] border border-white transition-all overflow-hidden">
           <div className="absolute inset-0 bg-sky-200/5 mix-blend-overlay pointer-events-none"></div>
           
           <div className="absolute right-4 top-4 flex flex-col gap-2 z-20">
@@ -772,15 +912,15 @@ export default function ZenColoring() {
                 // - Filled = the saved color
                 // - Target & Unfilled = target-pattern
                 // - Unfilled (not target) = white/40 (classic color-by-number uses a muted or white fill)
-                const fillColor = isAnt ? 'none' : (isFilled ? currentFills[path.id] : (isTargetNumber ? 'url(#target-pattern)' : (isClassicMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.4)')));
+                const fillColor = isAnt ? 'none' : (isFilled ? currentFills[path.id] : (isTargetNumber ? 'url(#target-pattern)' : (isClassicMode ? '#ffffff' : 'rgba(255, 255, 255, 0.4)')));
 
                 return (
                   <g key={path.id} filter={(!isClassicMode && !isFilled) ? "url(#glow)" : undefined}>
                     <path
                       d={path.d}
                       fill={fillColor}
-                      stroke={isTargetNumber ? 'rgba(56, 189, 248, 0.8)' : "rgba(100, 116, 139, 0.3)"}
-                      strokeWidth={isTargetNumber ? 1 : 0.5}
+                      stroke={isClassicMode ? '#1e293b' : "rgba(100, 116, 139, 0.3)"}
+                      strokeWidth={isTargetNumber ? 1.5 : (isClassicMode ? 0.75 : 0.5)}
                       strokeLinecap="round"
                       onClick={() => handleFill(path.id)}
                       className={`${isAnt ? '' : 'cursor-pointer hover:opacity-80 transition-opacity duration-300'} ${isHinted ? 'animate-pulse' : ''}`}
@@ -798,14 +938,14 @@ export default function ZenColoring() {
                           fill="url(#brush-shine)"
                           className="pointer-events-none mix-blend-overlay opacity-30"
                         />
-                        {isClassicMode && path.number && path.center && (!isFilled && (isTargetNumber || zoomLevel > 1.5)) && (
+                        {isClassicMode && path.number && path.center && (!isFilled) && (
                           <text
                             x={path.center.x}
                             y={path.center.y}
-                            fontSize="6"
+                            fontSize={isTargetNumber ? "8" : "6"}
                             textAnchor="middle"
                             dominantBaseline="middle"
-                            className={`pointer-events-none font-bold select-none transition-colors ${isTargetNumber ? 'fill-sky-700' : 'fill-slate-400'}`}
+                            className={`pointer-events-none font-bold select-none transition-colors ${isTargetNumber ? 'fill-sky-700' : 'fill-slate-600'}`}
                           >
                             {path.number}
                           </text>
@@ -1007,7 +1147,7 @@ export default function ZenColoring() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mt-6 p-6 rounded-2xl bg-white/60 border border-white/80 shadow-md"
+            className="mt-6 p-6 rounded-2xl bg-white/60 border border-white/80 shadow-md w-full max-w-lg mx-auto"
           >
             <p className="text-sm font-serif italic text-sky-900/60 text-center">
               A gentle check-in: "{sessionInfo.mid_coloring_prompt}"
@@ -1019,7 +1159,7 @@ export default function ZenColoring() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-8 p-10 rounded-[3rem] bg-gradient-to-br from-sky-400 to-indigo-500 text-white shadow-2xl text-center"
+            className="mt-8 p-10 rounded-[3rem] bg-gradient-to-br from-sky-400 to-indigo-500 text-white shadow-2xl text-center w-full max-w-lg mx-auto"
           >
             <h4 className="text-3xl font-serif mb-4">Masterpiece Complete</h4>
             <p className="text-lg opacity-90 italic">"{sessionInfo.completion_affirmation}"</p>
@@ -1027,5 +1167,8 @@ export default function ZenColoring() {
         )}
       </div>
     </div>
+  </div>
+  )}
+</div>
   );
 }
