@@ -182,3 +182,103 @@ export const generateMajesticButterfly = () => {
 
   return paths;
 };
+
+export const generateGracefulSwans = () => {
+  const paths = [];
+  let idCounter = 1;
+  const cx = 200, cy = 200;
+
+  // Background / Sky
+  paths.push({
+      id: `sky-bg`,
+      d: `M 0 0 L 400 0 L 400 200 L 0 200 Z`,
+      number: 8
+  });
+
+  // Sun
+  for(let r=0; r<5; r++) {
+      const radius = 60 - r*10;
+      paths.push({
+          id: `sun-${idCounter++}`,
+          d: `M 200 ${100 - radius} A ${radius} ${radius} 0 1 0 200 ${100 + radius} A ${radius} ${radius} 0 1 0 200 ${100 - radius} Z`,
+          number: 1 + (r % 3)
+      });
+  }
+
+  // Mountains
+  paths.push({ id: `mnt-1`, d: `M 0 200 L 100 80 L 250 200 Z`, number: 6 });
+  paths.push({ id: `mnt-2`, d: `M 150 200 L 300 60 L 400 200 Z`, number: 6 });
+  paths.push({ id: `mnt-3`, d: `M 80 200 L 200 120 L 320 200 Z`, number: 7 });
+
+  // Water ripples
+  for(let y=200; y<=380; y+=20) {
+      for(let x=0; x<400; x+=60) {
+          const w = 50 + Math.random()*20;
+          const offset = (y%40 === 0) ? 30 : 0;
+          const h = 10;
+          paths.push({
+              id: `ripple-${idCounter++}`,
+              d: `M ${x+offset} ${y} C ${x+offset+w/2} ${y-h}, ${x+offset+w/2} ${y+h}, ${x+offset+w} ${y} C ${x+offset+w/2} ${y+h}, ${x+offset+w/2} ${y-h}, ${x+offset} ${y} Z`,
+              number: 4 + (y%3)
+          });
+      }
+  }
+
+  // Graceful Swans forming a heart
+  const addSwan = (isRight) => {
+     const flip = (v) => isRight ? 400 - v : v;
+     const dir = isRight ? -1 : 1;
+     const prefix = isRight ? 'sr' : 'sl';
+     
+     // Body (large curved wing)
+     paths.push({
+         id: `${prefix}-body`,
+         d: `M ${flip(40)} 350 C ${flip(10)} 300, ${flip(40)} 240, ${flip(120)} 250 C ${flip(180)} 260, ${flip(190)} 320, ${flip(180)} 360 C ${flip(120)} 380, ${flip(60)} 380, ${flip(40)} 350 Z`,
+         number: 9
+     });
+
+     // Feathers/Wings details
+     for(let f=0; f<8; f++) {
+         const fx = flip(60 + f*15);
+         const fy = 260 + (f%2)*15;
+         paths.push({
+             id: `${prefix}-feather-${f}`,
+             d: `M ${fx} ${fy} C ${flip(60 + f*15 + 20*dir)} ${fy-40}, ${flip(60 + f*15 + 40*dir)} ${fy-20}, ${flip(60 + f*15 + 30*dir)} ${fy+10} Z`,
+             number: Math.random() > 0.5 ? 9 : 1
+         });
+     }
+
+     // Neck forming heart
+     paths.push({
+         id: `${prefix}-neck`,
+         d: `M ${flip(150)} 270 C ${flip(200)} 250, ${flip(220)} 150, ${flip(200)} 120 C ${flip(180)} 90, ${flip(140)} 100, ${flip(160)} 150 C ${flip(180)} 180, ${flip(170)} 240, ${flip(140)} 260 Z`,
+         number: 9
+     });
+
+     // Head & Beak
+     paths.push({
+         id: `${prefix}-head`,
+         d: `M ${flip(165)} 135 C ${flip(170)} 125, ${flip(190)} 120, ${flip(195)} 130 C ${flip(200)} 140, ${flip(180)} 150, ${flip(170)} 150 Z`,
+         number: 9
+     });
+     
+     // Beak pointing to center
+     paths.push({
+         id: `${prefix}-beak`,
+         d: `M ${flip(190)} 135 L ${flip(205)} 145 L ${flip(190)} 148 Z`,
+         number: 3
+     });
+  };
+
+  addSwan(false); // Left
+  addSwan(true);  // Right
+
+  // Small heart in the middle where beaks meet
+  paths.push({
+      id: `center-heart`,
+      d: `M 200 155 C 200 155, 190 145, 190 135 C 190 125, 205 125, 200 135 C 195 125, 210 125, 210 135 C 210 145, 200 155, 200 155 Z`,
+      number: 2
+  });
+
+  return paths;
+};

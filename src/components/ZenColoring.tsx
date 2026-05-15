@@ -3,7 +3,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 import { Palette, Check, ArrowLeftRight, Save, Download, Sparkles, Wand2, ChevronLeft, Brush, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { toPng } from 'html-to-image';
-import { generateDetailedMandala, generateMajesticButterfly } from './complexArtworks';
+  import { generateDetailedMandala, generateMajesticButterfly } from './complexArtworks';
+import { generateLowPolyLandscape } from './generatedLowpoly';
+import { generateLowPolySwans } from './generatedSwans';
 
 interface SessionInfo {
   therapeutic_intro: string;
@@ -87,47 +89,20 @@ const ARTWORKS: Artwork[] = [
     ]
   },
   {
-    id: 'twin-hearts',
-    name: 'Twin Hearts',
-    viewBox: '0 0 200 200',
-    category: 'Love',
-    classicPalette: ['#f43f5e', '#e11d48', '#be185d', '#fda4af', '#fecdd3', '#16a34a', '#86efac'],
-    paths: [
-      { id: 'lh-out1', d: 'M80 120 C80 120, 30 90, 30 60 C30 40, 60 40, 80 60 Z', number: 1, center: {x: 55, y: 70}, mirrorId: 'rh-out2' },
-      { id: 'lh-out2', d: 'M80 120 C80 120, 130 90, 130 60 C130 40, 100 40, 80 60 Z', number: 2, center: {x: 105, y: 70}, mirrorId: 'rh-out1' },
-      { id: 'lh-in1', d: 'M80 105 C80 105, 45 85, 45 65 C45 50, 65 50, 80 65 Z', number: 3, center: {x: 65, y: 70}, mirrorId: 'rh-in2' },
-      { id: 'lh-in2', d: 'M80 105 C80 105, 115 85, 115 65 C115 50, 95 50, 80 65 Z', number: 4, center: {x: 95, y: 70}, mirrorId: 'rh-in1' },
-      { id: 'rh-out1', d: 'M130 140 C130 140, 80 110, 80 80 C80 60, 110 60, 130 80 Z', number: 2, center: {x: 105, y: 90}, mirrorId: 'lh-out2' },
-      { id: 'rh-out2', d: 'M130 140 C130 140, 180 110, 180 80 C180 60, 150 60, 130 80 Z', number: 1, center: {x: 155, y: 90}, mirrorId: 'lh-out1' },
-      { id: 'rh-in1', d: 'M130 125 C130 125, 95 105, 95 85 C95 70, 115 70, 130 85 Z', number: 4, center: {x: 115, y: 90}, mirrorId: 'lh-in2' },
-      { id: 'rh-in2', d: 'M130 125 C130 125, 165 105, 165 85 C165 70, 145 70, 130 85 Z', number: 3, center: {x: 145, y: 90}, mirrorId: 'lh-in1' },
-      { id: 'vine-1', d: 'M20 180 Q40 160, 30 140 T50 100 Z', number: 6, center: {x: 35, y: 150} },
-      { id: 'vine-2', d: 'M180 20 Q160 40, 170 60 T150 100 Z', number: 6, center: {x: 165, y: 50} },
-      { id: 'leaf-1', d: 'M30 140 C20 130, 20 120, 30 120 C40 120, 40 130, 30 140 Z', number: 7, center: {x: 30, y: 125} },
-      { id: 'leaf-2', d: 'M50 100 C40 90, 40 80, 50 80 C60 80, 60 90, 50 100 Z', number: 7, center: {x: 50, y: 85} },
-      { id: 'leaf-3', d: 'M170 60 C180 70, 180 80, 170 80 C160 80, 160 70, 170 60 Z', number: 7, center: {x: 170, y: 75} },
-      { id: 'leaf-4', d: 'M150 100 C160 110, 160 120, 150 120 C140 120, 140 110, 150 100 Z', number: 7, center: {x: 150, y: 105} }
-    ]
-  },
-  {
     id: 'mountain-sunrise',
     name: 'Mountain Sunrise',
-    viewBox: '0 0 200 200',
+    viewBox: '0 0 400 400',
     category: 'Nature',
-    classicPalette: ['#fcd34d', '#f59e0b', '#f43f5e', '#3b82f6', '#1e3a8a', '#10b981', '#064e3b'],
-    paths: [
-      { id: 'sun', d: 'M100 120 A 40 40 0 1 0 100 40 A 40 40 0 1 0 100 120 Z', number: 1, center: {x: 100, y: 80} },
-      { id: 'sky-rays1', d: 'M0 0 L100 80 L0 50 Z', number: 2, center: {x: 30, y: 40} },
-      { id: 'sky-rays2', d: 'M0 0 L100 0 L100 80 Z', number: 3, center: {x: 60, y: 20} },
-      { id: 'sky-rays3', d: 'M100 0 L200 0 L100 80 Z', number: 3, center: {x: 140, y: 20} },
-      { id: 'sky-rays4', d: 'M200 0 L200 50 L100 80 Z', number: 2, center: {x: 170, y: 40} },
-      { id: 'mntn-bg-l', d: 'M0 160 L60 80 L120 160 Z', number: 5, center: {x: 60, y: 130} },
-      { id: 'mntn-bg-r', d: 'M80 160 L140 70 L200 160 Z', number: 5, center: {x: 140, y: 130} },
-      { id: 'mntn-fg-m', d: 'M40 200 L100 110 L160 200 Z', number: 4, center: {x: 100, y: 160} },
-      { id: 'ground', d: 'M0 160 L200 160 L200 200 L0 200 Z', number: 6, center: {x: 100, y: 180} },
-      { id: 'tree-1', d: 'M20 180 L30 150 L40 180 Z', number: 7, center: {x: 30, y: 170} },
-      { id: 'tree-2', d: 'M160 180 L170 140 L180 180 Z', number: 7, center: {x: 170, y: 165} }
-    ]
+    classicPalette: ['#fcd34d', '#f59e0b', '#f43f5e', '#3b82f6', '#1e3a8a', '#10b981', '#064e3b', '#60a5fa', '#fef08a'],
+    paths: generateLowPolyLandscape()
+  },
+  {
+    id: 'graceful-swans',
+    name: 'Swan Lake Love',
+    viewBox: '0 0 400 400',
+    category: 'Love',
+    classicPalette: ['#ffffff', '#e2e8f0', '#94a3b8', '#fb923c', '#fde047', '#38bdf8', '#0284c7', '#1e3a8a', '#f43f5e'],
+    paths: generateLowPolySwans()
   },
   {
     id: 'butterfly',
@@ -723,6 +698,18 @@ export default function ZenColoring() {
 
   return (
     <div className="flex flex-col items-center pb-40 min-h-screen relative">
+      <style>
+        {`
+          @keyframes cosmicShimmer {
+            0% { stroke-dashoffset: 200; }
+            100% { stroke-dashoffset: 0; }
+          }
+          .cosmic-shimmer {
+            stroke-dasharray: 15 45;
+            animation: cosmicShimmer 4s linear infinite;
+          }
+        `}
+      </style>
       {screen === 'gallery' ? (
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 pt-8">
            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 w-full border-b border-sky-900/10 pb-6">
@@ -769,9 +756,9 @@ export default function ZenColoring() {
                             const savedColor = savedFills[p.id];
                             
                             const targetColor = art.classicPalette?.[((p.number || 1) - 1) % (art.classicPalette?.length || 1)] || '#cbd5e1';
-                            const fillColor = isAnt ? 'none' : (savedColor || targetColor);
-                            const fillOpacity = isAnt ? 1 : (savedColor ? 1 : 0.15);
-                            const strokeColor = savedColor ? "rgba(255,255,255,0.4)" : "rgba(15, 23, 42, 0.4)";
+                            const fillColor = isAnt ? 'none' : (savedColor || '#ffffff');
+                            const fillOpacity = 1;
+                            const strokeColor = isAnt ? "rgba(15, 23, 42, 0.4)" : (savedColor ? "rgba(0,0,0,0.1)" : "#94a3b8");
                             
                             return (
                                <g key={p.id} className={
@@ -779,6 +766,16 @@ export default function ZenColoring() {
                                  (art.id === 'butterfly' || art.id === 'monarch-journey' || art.id === 'majestic-butterfly') && (p.id.startsWith('ur-') || p.id.startsWith('lr-') || p.id.startsWith('mj-r')) ? 'wing-right' : ''
                                }>
                                  <path d={p.d} fill={fillColor} fillOpacity={fillOpacity} stroke={strokeColor} strokeWidth={isAnt ? 1.5 : (savedColor ? 1 : 0.8)} strokeLinecap="round" />
+                                 {art.id === 'nebula' && (p.id === 'spiral-1' || p.id === 'spiral-2') && (
+                                   <path
+                                     d={p.d}
+                                     fill="none"
+                                     stroke="rgba(255, 255, 255, 0.7)"
+                                     strokeWidth="2"
+                                     strokeLinecap="round"
+                                     className="pointer-events-none cosmic-shimmer mix-blend-screen"
+                                   />
+                                 )}
                                </g>
                             );
                          })}
@@ -1075,7 +1072,7 @@ export default function ZenColoring() {
                     const isTargetNumber = isClassicMode && currentArtwork.classicPalette && 
                       path.number === (currentArtwork.classicPalette.indexOf(selectedColor) + 1) && !isFilled;
 
-                    const fillColor = isAnt ? 'none' : (isFilled ? currentFills[path.id] : (isTargetNumber ? 'url(#target-pattern)' : (isClassicMode ? '#ffffff' : 'rgba(255, 255, 255, 0.6)')));
+                    const fillColor = isAnt ? 'none' : (isFilled ? currentFills[path.id] : (isTargetNumber ? '#e2e8f0' : '#ffffff'));
 
                     let wingCls = '';
                     if (currentArtwork.id === 'butterfly' || currentArtwork.id === 'monarch-journey' || currentArtwork.id === 'majestic-butterfly') {
@@ -1084,12 +1081,12 @@ export default function ZenColoring() {
                     }
 
                     return (
-                      <g key={path.id} className={wingCls} filter={(!isClassicMode && !isFilled) ? "url(#glow)" : undefined}>
+                      <g key={path.id} className={wingCls}>
                         <path
                           d={path.d}
                           fill={fillColor}
-                          stroke={isClassicMode ? '#334155' : "rgba(71, 85, 105, 0.2)"}
-                          strokeWidth={isTargetNumber ? 1.5 : (isClassicMode ? 0.75 : 0.5)}
+                          stroke={isFilled ? 'transparent' : '#94a3b8'}
+                          strokeWidth={isTargetNumber ? 1.5 : 0.75}
                           strokeLinecap="round"
                           onClick={() => handleFill(path.id)}
                           className={`${isAnt ? '' : 'cursor-pointer hover:opacity-80 transition-opacity duration-300'} ${isHinted ? 'animate-pulse' : ''}`}
@@ -1105,11 +1102,21 @@ export default function ZenColoring() {
                               fill="url(#brush-shine)"
                               className="pointer-events-none mix-blend-overlay opacity-30"
                             />
-                            {isClassicMode && path.number && path.center && (!isFilled) && (
+                            {currentArtwork.id === 'nebula' && (path.id === 'spiral-1' || path.id === 'spiral-2') && (
+                              <path
+                                d={path.d}
+                                fill="none"
+                                stroke="rgba(255, 255, 255, 0.7)"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                className="pointer-events-none cosmic-shimmer mix-blend-screen"
+                              />
+                            )}
+                            {path.number && path.center && (!isFilled) && (
                               <text
                                 x={path.center.x}
                                 y={path.center.y}
-                                fontSize={isTargetNumber ? "8" : "6"}
+                                fontSize={isTargetNumber ? (currentArtwork.viewBox.includes('400') ? "14" : "8") : (currentArtwork.viewBox.includes('400') ? "10" : "6")}
                                 textAnchor="middle"
                                 dominantBaseline="middle"
                                 className={`pointer-events-none font-bold select-none transition-colors ${isTargetNumber ? 'fill-sky-700' : 'fill-slate-500'}`}
