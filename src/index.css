@@ -32,6 +32,34 @@ body {
   box-shadow: 0 8px 32px rgba(56, 189, 248, 0.12);
 }
 
+@keyframes flap-left {
+  0%, 100% { transform: perspective(400px) rotateY(0deg); }
+  50% { transform: perspective(400px) rotateY(20deg); }
+}
+
+@keyframes flap-right {
+  0%, 100% { transform: perspective(400px) rotateY(0deg); }
+  50% { transform: perspective(400px) rotateY(-20deg); }
+}
+
+.wing-left {
+  transform-origin: 100px 100px;
+  animation: flap-left 6s ease-in-out infinite;
+}
+
+.wing-right {
+  transform-origin: 100px 100px;
+  animation: flap-right 6s ease-in-out infinite;
+}
+
+/* Faster flap on hover in the preview card */
+.group:hover .wing-left {
+  animation: flap-left 2s ease-in-out infinite;
+}
+.group:hover .wing-right {
+  animation: flap-right 2s ease-in-out infinite;
+}
+
 .accent-gradient {
   background: radial-gradient(circle at center, #e0f2fe 0%, #f0f9ff 100%);
 }

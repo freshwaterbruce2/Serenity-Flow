@@ -107,26 +107,44 @@ export default function ZenBackground() {
 
         if (p.type === 'butterfly') {
           const flap = Math.abs(Math.cos(p.time));
-          const wingW = p.size * (0.2 + flap * 0.8);
+          const wingW = p.size * (0.4 + flap * 1.2);
           
           ctx.globalAlpha = Math.min(p.life, 0.6);
           ctx.fillStyle = p.color;
           
-          // left wing
+          // upper left wing
           ctx.beginPath();
-          ctx.ellipse(-wingW/2 - 1, 0, wingW/2, p.size, 0, 0, Math.PI * 2);
+          ctx.moveTo(-1, 0);
+          ctx.bezierCurveTo(-wingW * 0.5, -p.size * 1.2, -wingW, -p.size * 0.8, -wingW, -p.size * 0.2);
+          ctx.quadraticCurveTo(-wingW * 0.6, p.size * 0.1, -1, 0);
           ctx.fill();
           
-          // right wing
+          // lower left wing
           ctx.beginPath();
-          ctx.ellipse(wingW/2 + 1, 0, wingW/2, p.size, 0, 0, Math.PI * 2);
+          ctx.moveTo(-1, 0);
+          ctx.quadraticCurveTo(-wingW * 0.8, p.size * 0.3, -wingW * 0.7, p.size);
+          ctx.quadraticCurveTo(-wingW * 0.2, p.size * 0.8, -1, p.size * 0.6);
+          ctx.fill();
+          
+          // upper right wing
+          ctx.beginPath();
+          ctx.moveTo(1, 0);
+          ctx.bezierCurveTo(wingW * 0.5, -p.size * 1.2, wingW, -p.size * 0.8, wingW, -p.size * 0.2);
+          ctx.quadraticCurveTo(wingW * 0.6, p.size * 0.1, 1, 0);
+          ctx.fill();
+          
+          // lower right wing
+          ctx.beginPath();
+          ctx.moveTo(1, 0);
+          ctx.quadraticCurveTo(wingW * 0.8, p.size * 0.3, wingW * 0.7, p.size);
+          ctx.quadraticCurveTo(wingW * 0.2, p.size * 0.8, 1, p.size * 0.6);
           ctx.fill();
           
           // tiny glowing body
           ctx.globalAlpha = Math.min(p.life, 0.9);
           ctx.fillStyle = '#fff';
           ctx.beginPath();
-          ctx.arc(0, 0, p.size/4, 0, Math.PI*2);
+          ctx.ellipse(0, p.size * 0.1, p.size/4, p.size/1.5, 0, 0, Math.PI*2);
           ctx.fill();
         } else {
           ctx.beginPath();

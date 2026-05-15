@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
-import { Palette, Check, ArrowLeftRight, Save, Download, Sparkles, Wand2, ChevronLeft, Brush } from 'lucide-react';
+import { Palette, Check, ArrowLeftRight, Save, Download, Sparkles, Wand2, ChevronLeft, Brush, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { toPng } from 'html-to-image';
+import { generateDetailedMandala, generateMajesticButterfly } from './complexArtworks';
 
 interface SessionInfo {
   therapeutic_intro: string;
@@ -443,6 +445,22 @@ const ARTWORKS: Artwork[] = [
       { id: 'rim-3', d: 'M190 190 L135 160 L150 150 L190 110 Z' },
       { id: 'rim-4', d: 'M10 190 L65 160 L50 150 L10 110 Z' },
     ]
+  },
+  {
+    id: 'masterpiece-mandala',
+    name: 'Masterpiece Mandala',
+    viewBox: '0 0 200 200',
+    category: 'Geometric',
+    classicPalette: ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', '#6366f1', '#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#10b981', '#22c55e', '#84cc16', '#eab308', '#f59e0b', '#f97316'],
+    paths: generateDetailedMandala()
+  },
+  {
+    id: 'majestic-butterfly',
+    name: 'Majestic Monarch',
+    viewBox: '0 0 200 200',
+    category: 'Butterflies',
+    classicPalette: ['#1e1e1e', '#eab308', '#f97316', '#f43f5e', '#ec4899', '#3b82f6', '#14b8a6'],
+    paths: generateMajesticButterfly()
   }
 ];
 
@@ -506,9 +524,12 @@ export default function ZenColoring() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [loadingSession, setLoadingSession] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [isClassicMode, setIsClassicMode] = useState(true);
   const [hintPathId, setHintPathId] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [exporting, setExporting] = useState(false);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   const currentArtwork = ENRICHED_ARTWORKS.find(a => a.id === activeArtworkId) || ENRICHED_ARTWORKS[0];
   const currentFills = fills[activeArtworkId] || {};
@@ -580,9 +601,16 @@ export default function ZenColoring() {
       setSessionInfo(data);
       setActivePalette('ai');
       setSelectedColor(data.palette["1"].hex);
-    } catch (e) {
+      setAiError(null);
+    } catch (e: any) {
       console.error("Failed to fetch AI session", e);
-      alert("The AI guiding companion is currently taking a mindful breath. Please try again in a moment.");
+      let errorMsg = "The AI guiding companion is currently taking a mindful breath. Please try again in a moment.";
+      const errorStr = (e instanceof Error ? e.message : String(e));
+      if (errorStr.includes('"code":503') || errorStr.includes('high demand') || errorStr.includes('UNAVAILABLE')) {
+        errorMsg = "The AI guiding companion is currently experiencing high demand. Please try again in a few moments.";
+      }
+      setAiError(errorMsg);
+      setTimeout(() => setAiError(null), 6000);
     } finally {
       setLoadingSession(false);
     }
@@ -603,6 +631,31 @@ export default function ZenColoring() {
     localStorage.setItem('serenity-flow-fills', JSON.stringify(fills));
     setSaveStatus('saved');
     setTimeout(() => setSaveStatus('idle'), 2000);
+  };
+
+  const handleExport = async () => {
+    if (svgRef.current === null) return;
+    try {
+      setExporting(true);
+      
+      // Temporarily add a white background for the export because SVG might be transparent
+      const originalBackground = svgRef.current.style.backgroundColor;
+      svgRef.current.style.backgroundColor = '#ffffff';
+
+      const dataUrl = await toPng(svgRef.current, { cacheBust: true, pixelRatio: 2 });
+      
+      svgRef.current.style.backgroundColor = originalBackground;
+
+      const link = document.createElement('a');
+      link.download = `${currentArtwork.name}-serenity-flow.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Failed to export image', err);
+      alert('Could not export the image. Please try again.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleFill = (id: string) => {
@@ -699,48 +752,60 @@ export default function ZenColoring() {
              ))}
            </div>
            
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pb-20">
              {ENRICHED_ARTWORKS.filter(art => activeCategory === 'All' || art.category === activeCategory).map(art => {
                const total = art.paths.filter(p => !p.id.startsWith('ant')).length;
                const savedFills = fills[art.id] || {};
                const filledCount = Object.keys(savedFills).filter(k => !k.startsWith('ant') && savedFills[k]).length;
                const progress = total > 0 ? (filledCount / total) * 100 : 0;
                return (
-                 <div key={art.id} className="group relative bg-white/40 backdrop-blur-md rounded-[2rem] p-6 border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:border-sky-300 transition-all duration-500 overflow-hidden flex flex-col pt-8 text-left bg-gradient-to-br hover:from-white/60 hover:to-sky-50/60 object-cover">
+                 <div key={art.id} className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-sky-200 transition-all duration-300 p-4 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 text-left">
                     {/* SVG preview */}
-                    <div className="w-full aspect-square mb-6 transition-transform duration-700 ease-out group-hover:scale-105 pointer-events-none drop-shadow-md bg-white rounded-2xl border border-black/5 p-2">
-                      <svg viewBox={art.viewBox} className="w-full h-full">
+                    <div className="w-full sm:w-36 h-48 sm:h-36 shrink-0 bg-slate-50 rounded-xl relative flex items-center justify-center p-3 border border-slate-100 overflow-hidden group-hover:bg-slate-100/50 transition-colors">
+                      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                      <svg viewBox={art.viewBox} className="w-full h-full drop-shadow-sm relative z-10 transition-transform duration-700 ease-out group-hover:scale-105 pointer-events-none">
                          {art.paths.map(p => {
                             const isAnt = p.id.startsWith('ant');
                             const savedColor = savedFills[p.id];
+                            
+                            const targetColor = art.classicPalette?.[((p.number || 1) - 1) % (art.classicPalette?.length || 1)] || '#cbd5e1';
+                            const fillColor = isAnt ? 'none' : (savedColor || targetColor);
+                            const fillOpacity = isAnt ? 1 : (savedColor ? 1 : 0.15);
+                            const strokeColor = savedColor ? "rgba(255,255,255,0.4)" : "rgba(15, 23, 42, 0.4)";
+                            
                             return (
-                               <path key={p.id} d={p.d} fill={isAnt ? 'none' : (savedColor || '#ffffff')} stroke={savedColor ? "rgba(255,255,255,0.4)" : "#1e293b"} strokeWidth={isAnt ? 1.5 : (savedColor ? 1 : 0.75)} strokeLinecap="round" />
+                               <g key={p.id} className={
+                                 (art.id === 'butterfly' || art.id === 'monarch-journey' || art.id === 'majestic-butterfly') && (p.id.startsWith('ul-') || p.id.startsWith('ll-') || p.id.startsWith('mj-l')) ? 'wing-left' :
+                                 (art.id === 'butterfly' || art.id === 'monarch-journey' || art.id === 'majestic-butterfly') && (p.id.startsWith('ur-') || p.id.startsWith('lr-') || p.id.startsWith('mj-r')) ? 'wing-right' : ''
+                               }>
+                                 <path d={p.d} fill={fillColor} fillOpacity={fillOpacity} stroke={strokeColor} strokeWidth={isAnt ? 1.5 : (savedColor ? 1 : 0.8)} strokeLinecap="round" />
+                               </g>
                             );
                          })}
                       </svg>
                     </div>
-                    <div className="flex flex-col gap-1.5 z-10 bg-white/70 backdrop-blur-md p-4 rounded-3xl border border-white shadow-sm mt-auto">
-                      <h3 className="text-[15px] font-bold text-sky-950 font-serif leading-tight">{art.name}</h3>
-                      <div className="flex items-center justify-between mt-1">
-                         <span className="text-[9px] uppercase font-bold text-sky-900/40 tracking-wider">
+                    <div className="flex flex-col flex-1 min-w-0 z-10 relative">
+                      <h3 className="text-xl sm:text-lg font-bold text-slate-800 font-serif leading-tight truncate" title={art.name}>{art.name}</h3>
+                      <div className="flex items-center justify-between mt-1 mb-4">
+                         <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                            {art.category} • {total} parts
                          </span>
                          {progress > 0 && (
-                            <span className="text-[10px] font-bold text-sky-600 bg-sky-100 px-2 py-0.5 rounded-full ring-1 ring-sky-200">
+                            <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full ring-1 ring-sky-200">
                                {Math.round(progress)}%
                             </span>
                          )}
                       </div>
                       
                       {progress > 0 && (
-                        <div className="h-1.5 w-full bg-slate-100 rounded-full mt-2 overflow-hidden border border-black/5 shadow-inner">
-                          <div className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full" style={{ width: `${progress}%` }} />
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full mb-4 overflow-hidden border border-black/5 shadow-inner">
+                          <div className="h-full bg-sky-500 rounded-full" style={{ width: `${progress}%` }} />
                         </div>
                       )}
                       
-                      <div className="flex flex-col gap-2 mt-4">
-                         <button onClick={(e) => { e.stopPropagation(); setActiveArtworkId(art.id); setIsClassicMode(true); setActivePalette('classic'); setScreen('workspace'); }} className="w-full py-3 bg-sky-500 text-white rounded-full text-[11px] font-bold uppercase tracking-widest shadow-md hover:bg-sky-600 transition-all active:scale-95">Color By Number</button>
-                         <button onClick={(e) => { e.stopPropagation(); setActiveArtworkId(art.id); setIsClassicMode(false); setActivePalette('celestial'); setScreen('workspace'); }} className="w-full py-3 bg-white text-sky-900 rounded-full text-[11px] font-bold uppercase tracking-widest shadow-sm border border-sky-200 hover:bg-sky-50 transition-all active:scale-95">Zen Mode (Free)</button>
+                      <div className="grid grid-cols-2 gap-2 mt-auto pt-2 sm:pt-4">
+                         <button onClick={(e) => { e.stopPropagation(); setActiveArtworkId(art.id); setIsClassicMode(true); setActivePalette('classic'); setScreen('workspace'); }} className="w-full py-3 sm:py-2.5 bg-slate-900 text-white rounded-xl text-[10px] sm:text-[11px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors whitespace-nowrap overflow-hidden text-ellipsis shadow-sm">Classic</button>
+                         <button onClick={(e) => { e.stopPropagation(); setActiveArtworkId(art.id); setIsClassicMode(false); setActivePalette('celestial'); setScreen('workspace'); }} className="w-full py-3 sm:py-2.5 bg-sky-50 text-sky-700 rounded-xl text-[10px] sm:text-[11px] font-bold uppercase tracking-widest hover:bg-sky-100 transition-colors whitespace-nowrap overflow-hidden text-ellipsis border border-sky-100 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7)] group-hover:border-sky-200">Zen</button>
                       </div>
                     </div>
                  </div>
@@ -749,426 +814,362 @@ export default function ZenColoring() {
            </div>
         </div>
       ) : (
-        <div className="w-full flex justify-center pb-32 mt-4 sm:mt-8">
-          <div className="w-full max-w-4xl px-4 sm:px-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 border-b border-sky-900/10 pb-6 w-full">
-               <div className="flex items-center gap-4">
-                 <button 
-                   onClick={() => setScreen('gallery')} 
-                   className="w-12 h-12 rounded-full bg-white/80 border border-white shadow-sm flex items-center justify-center text-sky-900 hover:bg-white hover:text-sky-600 transition-all hover:scale-105"
-                 >
-                    <ChevronLeft className="w-5 h-5" />
-                 </button>
-                 <div>
-                     <h2 className="text-2xl font-serif text-sky-950">{currentArtwork.name}</h2>
-                     <p className="text-[10px] uppercase tracking-widest font-bold text-sky-900/40">{currentArtwork.category} • {isClassicMode ? 'Classic By Number' : 'Zen Guided'}</p>
+        <div className="fixed inset-0 bg-[#f8fafc] flex z-50 overflow-hidden font-sans selection:bg-sky-100">
+           {/* Background Texture */}
+           <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+
+           <AnimatePresence>
+             {aiError && (
+               <motion.div 
+                 initial={{ opacity: 0, y: -20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: -20 }}
+                 className="absolute top-24 inset-x-0 mx-auto w-full max-w-lg z-50 pointer-events-none flex justify-center"
+               >
+                 <div className="bg-red-50 text-red-600 px-6 py-4 rounded-3xl shadow-xl flex flex-col items-center text-center border border-red-100 pointer-events-auto">
+                    <p className="text-sm font-medium">{aiError}</p>
                  </div>
+               </motion.div>
+             )}
+             
+             {sessionInfo && activePalette === 'ai' && (
+               <motion.div 
+                 initial={{ opacity: 0, y: -20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: -20 }}
+                 className="absolute top-20 left-1/2 -translate-x-1/2 z-40 pointer-events-none max-w-md w-full px-4"
+               >
+                 <div className="bg-slate-900/95 backdrop-blur-md text-white px-6 py-4 rounded-3xl shadow-2xl flex flex-col items-center text-center border border-white/10 pointer-events-auto">
+                    <p className="text-sm font-serif italic mb-1">
+                      "{sessionInfo.therapeutic_intro}"
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest font-bold text-slate-400">
+                       <Sparkles className="w-3 h-3 text-sky-400" />
+                       Guided Intention
+                    </div>
+                 </div>
+               </motion.div>
+             )}
+           </AnimatePresence>
+
+           {/* Header Area */}
+           <div className="absolute top-4 inset-x-4 sm:inset-x-6 z-30 flex items-center justify-between pointer-events-none">
+             <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto">
+               <button 
+                 onClick={() => setScreen('gallery')} 
+                 className="w-10 h-10 sm:w-12 sm:h-12 bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-slate-200/60 flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all hover:shadow-md"
+               >
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+               </button>
+               <div className="bg-white/90 backdrop-blur-md px-3 sm:px-5 h-10 sm:h-12 border border-slate-200/60 rounded-2xl shadow-sm flex flex-col justify-center">
+                   <h2 className="text-xs sm:text-sm font-serif text-slate-800 leading-tight">{currentArtwork.name}</h2>
+                   <p className="text-[8px] sm:text-[9px] uppercase tracking-widest font-bold text-slate-400">{isClassicMode ? 'Classic Mode' : 'Zen Freeplay'}</p>
                </div>
-               <div className="flex items-center gap-3">
-                <button
-                  onClick={toggleClassicMode}
-                  className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
-                    isClassicMode 
-                      ? 'bg-sky-500 text-white shadow-lg' 
-                      : 'bg-white/60 text-sky-900/40 hover:bg-white/80 border border-white/60'
-                  }`}
-                >
-                  {isClassicMode ? 'Classic Mode' : 'Zen Mode'}
-                </button>
-                <div className="w-px h-8 bg-sky-900/10 mx-1" />
-                <button
-                  onClick={requestAISession}
-                  disabled={loadingSession}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
-                    loadingSession 
-                      ? 'bg-sky-200 text-sky-400 cursor-not-allowed' 
-                      : 'bg-sky-900 text-white hover:bg-sky-800 shadow-xl shadow-sky-900/10 active:scale-95'
-                  }`}
-                >
-                  {loadingSession ? (
-                    <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
-                  ) : (
-                    <Wand2 className="w-4 h-4" />
+             </div>
+             
+             <div className="bg-white/90 backdrop-blur-md h-10 sm:h-12 p-1 border border-slate-200/60 rounded-2xl shadow-sm flex items-center gap-1 sm:gap-2 pointer-events-auto">
+               <button 
+                 onClick={requestAISession} 
+                 disabled={loadingSession} 
+                 className={`h-full px-2 sm:px-4 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1 sm:gap-2 ${loadingSession ? 'bg-sky-50 text-sky-400' : 'bg-sky-50 text-sky-600 hover:bg-sky-100'}`}
+               >
+                 {loadingSession ? <div className="w-3 h-3 rounded-full border-2 border-sky-400/40 border-t-sky-400 animate-spin" /> : <Sparkles className="w-3 sm:w-3.5 h-3 sm:h-3.5" />}
+                 <span className="hidden sm:inline">AI Guide</span>
+               </button>
+               <div className="w-px h-5 sm:h-6 bg-slate-200 mx-0.5 sm:mx-1" />
+               <button onClick={handleSave} className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors" title="Save">
+                  {saveStatus === 'saved' ? <Check className="w-4 h-4 text-green-500" /> : <Save className="w-4 h-4" />}
+               </button>
+               <button onClick={handleExport} disabled={exporting} className="hidden sm:flex w-10 h-10 rounded-xl items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors" title="Export">
+                  <Download className="w-4 h-4" />
+               </button>
+               <button onClick={() => setSymmetryMode(!symmetryMode)} className={`hidden sm:flex w-10 h-10 rounded-xl items-center justify-center transition-colors ${symmetryMode ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-100'}`} title="Symmetry">
+                  <ArrowLeftRight className="w-4 h-4" />
+               </button>
+               <button onClick={handleReset} className="hidden sm:flex w-10 h-10 rounded-xl items-center justify-center text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors" title="Reset">
+                  <RotateCcw className="w-4 h-4" />
+               </button>
+             </div>
+           </div>
+
+           {/* Floating Bottom Dock */}
+           <div className="absolute bottom-4 sm:bottom-6 inset-x-4 sm:inset-x-8 z-30 flex flex-col items-center pointer-events-none">
+             {isClassicMode && (
+               <div className="w-full max-w-4xl h-1 bg-slate-200/50 rounded-t-full mb-1 flex overflow-hidden backdrop-blur-sm pointer-events-auto">
+                 <motion.div 
+                   className="h-full bg-sky-500 rounded-full"
+                   initial={{ width: 0 }}
+                   animate={{ width: `${(Object.keys(currentFills).filter(k => !k.startsWith('ant')).length / currentArtwork.paths.filter(p => !p.id.startsWith('ant')).length) * 100}%` }}
+                   transition={{ duration: 0.5 }}
+                 />
+               </div>
+             )}
+
+             <div className="w-full max-w-4xl bg-white/95 backdrop-blur-md rounded-3xl border border-slate-200/60 shadow-xl pointer-events-auto flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 border-b border-slate-100 bg-slate-50/50">
+                  <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto scrollbar-hide py-1">
+                    <button
+                      onClick={() => { setActivePalette('classic'); setIsClassicMode(true); }}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
+                        isClassicMode ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:bg-slate-200'
+                      }`}
+                    >
+                      Classic By Number
+                    </button>
+                    <div className="w-px h-4 bg-slate-200 shrink-0" />
+                    {PALETTE_NAMES.filter(p => p.id !== 'classic').map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => { setActivePalette(p.id); setIsClassicMode(false); }}
+                        className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
+                          !isClassicMode && activePalette === p.id ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-200 shadow-sm' : 'text-slate-500 hover:bg-slate-200'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  {isClassicMode && (
+                    <button onClick={handleHint} className="hidden sm:flex shrink-0 px-3 py-1.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider hover:bg-amber-100 transition-colors items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" /> Hint
+                    </button>
                   )}
-                  {loadingSession ? 'Preparing Sanctuary...' : 'Guided Session'}
-                </button>
-                <div className="w-px h-8 bg-sky-900/10 mx-1 hidden sm:block" />
-                <button
-                  onClick={handleSave}
-                  className={`p-2.5 rounded-full transition-all flex items-center gap-2 ${
-                    saveStatus === 'saved' 
-                      ? 'bg-green-500/20 text-green-600' 
-                      : 'bg-white/60 text-sky-900/40 hover:bg-white/80 shadow-sm'
-                  }`}
-                >
-                  <Save className="w-4.5 h-4.5" />
-                </button>
-                <button
-                  onClick={() => setSymmetryMode(!symmetryMode)}
-                  className={`p-2.5 rounded-full transition-all ${
-                    symmetryMode 
-                      ? 'bg-sky-500 text-white shadow-lg' 
-                      : 'bg-white/60 text-sky-900/40'
-                  }`}
-                >
-                  <ArrowLeftRight className="w-4.5 h-4.5" />
-                </button>
-                <button 
-                  onClick={handleReset}
-                  className="text-xs uppercase tracking-widest text-sky-900/40 hover:text-sky-900 px-2"
-                >
-                  Clear
-                </button>
-            </div>
-        </div>
+                </div>
 
-        <AnimatePresence>
-          {sessionInfo && activePalette === 'ai' && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="w-full mb-8"
-            >
-              <div className="p-6 rounded-[2rem] bg-sky-900 text-white/90 border border-white/10 shadow-2xl relative overflow-hidden">
-                 <div className="absolute top-0 right-0 p-8 opacity-10">
-                    <Sparkles className="w-24 h-24" />
-                 </div>
-                 <p className="text-lg font-serif italic mb-2 relative z-10">
-                   "{sessionInfo.therapeutic_intro}"
-                 </p>
-                 <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold opacity-50 relative z-10">
-                    <Sparkles className="w-3 h-3" />
-                    AI Guided Intention
-                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <div className="px-4 py-4 sm:py-6 overflow-x-auto scrollbar-hide">
+                  <AnimatePresence mode="popLayout">
+                    <motion.div
+                      key={activePalette}
+                      initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                      className="flex gap-4 min-w-max px-2 items-center"
+                    >
+                      {activePalette === 'ai' && sessionInfo ? (
+                        Object.entries(sessionInfo.palette).map(([key, item]: [string, { hex: string, theme: string }]) => (
+                          <div key={`ai-${key}`} className="flex flex-col items-center gap-2">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
+                              onClick={() => setSelectedColor(item.hex)}
+                              className={`relative w-12 h-12 sm:w-16 sm:h-16 rounded-full shadow-sm border border-black/5 shrink-0 ${selectedColor === item.hex ? 'ring-4 ring-sky-500/30 ring-offset-2' : ''}`}
+                              style={{ backgroundColor: item.hex }}
+                            >
+                              {selectedColor === item.hex && (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <Check className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-md" />
+                                </div>
+                              )}
+                            </motion.button>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{item.theme}</span>
+                          </div>
+                        ))
+                      ) : activePalette === 'classic' && currentArtwork.classicPalette ? (
+                        currentArtwork.classicPalette.map((color, index) => {
+                          const total = currentArtwork.paths.filter(p => p.number === (index + 1) && !p.id.startsWith('ant')).length;
+                          const remaining = currentArtwork.paths.filter(p => p.number === (index + 1) && !currentFills[p.id] && !p.id.startsWith('ant')).length;
+                          const isDone = total > 0 && remaining === 0;
+                          const progress = total === 0 ? 100 : ((total - remaining) / total) * 100;
+                          const isSelected = selectedColor === color;
+                          
+                          return (
+                            <motion.button
+                              key={`classic-${color}`}
+                              whileHover={!isDone ? { scale: 1.1 } : {}} whileTap={!isDone ? { scale: 0.95 } : {}}
+                              onClick={() => setSelectedColor(color)}
+                              className={`relative w-12 h-12 sm:w-16 sm:h-16 rounded-full shrink-0 flex items-center justify-center ${isSelected && !isDone ? 'ring-4 ring-sky-500/30 ring-offset-2' : ''}`}
+                            >
+                              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
+                                 <circle cx="50%" cy="50%" r="45%" fill={isDone ? '#f1f5f9' : "white"} className="drop-shadow-sm" />
+                                 {!isDone && (
+                                   <circle 
+                                     cx="50%" cy="50%" r="45%" fill="none" stroke={color} strokeWidth="4" 
+                                     strokeDasharray="283" strokeDashoffset={`${283 * (1 - progress / 100)}`}
+                                     strokeLinecap="round" className="transition-all duration-500"
+                                   />
+                                 )}
+                              </svg>
+                              <div className="w-[70%] h-[70%] rounded-full shadow-inner flex items-center justify-center z-10" style={{ backgroundColor: color, opacity: isDone ? 0.3 : 1 }}>
+                                 {!isDone && <span className="text-white text-sm sm:text-lg font-bold drop-shadow-sm">{index + 1}</span>}
+                                 {isDone && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 absolute" />}
+                              </div>
+                              {isSelected && !isDone && (
+                                 <div className="absolute -top-1 -right-1 min-w-[20px] sm:min-w-[24px] h-[20px] sm:h-[24px] px-1 rounded-full bg-slate-800 text-white text-[10px] sm:text-xs font-bold flex items-center justify-center border-2 border-white shadow-sm z-20">
+                                   {remaining}
+                                 </div>
+                              )}
+                            </motion.button>
+                          );
+                        })
+                      ) : (
+                        (activePalette !== 'ai') && PALETTES[activePalette as keyof typeof PALETTES]?.map((color) => (
+                          <motion.button
+                            key={`${activePalette}-${color}`}
+                            whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
+                            onClick={() => setSelectedColor(color)}
+                            className={`relative w-12 h-12 sm:w-16 sm:h-16 rounded-full shadow-sm border border-black/5 shrink-0 transition-all ${selectedColor === color ? 'ring-4 ring-sky-500/30 ring-offset-2' : ''}`}
+                            style={{ backgroundColor: color }}
+                          >
+                            {selectedColor === color && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Check className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-md" />
+                              </div>
+                            )}
+                          </motion.button>
+                        ))
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+             </div>
+           </div>
 
-        {/* Progress Bar (Overall) */}
-        {isClassicMode && (
-          <div className="w-full max-w-sm mx-auto mb-6 px-4">
-            <div className="h-3 w-full bg-white/40 rounded-full overflow-hidden border border-white/60 shadow-inner">
-              <motion.div 
-                className="h-full bg-sky-500 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${(Object.keys(currentFills).filter(k => !k.startsWith('ant')).length / currentArtwork.paths.filter(p => !p.id.startsWith('ant')).length) * 100}%` }}
-                transition={{ duration: 0.5 }}
-              />
-            </div>
-            <div className="flex justify-between items-center mt-2 px-1 text-[10px] uppercase tracking-wider font-bold text-sky-900/40">
-               <span>Progress</span>
-               <span>{Math.round((Object.keys(currentFills).filter(k => !k.startsWith('ant')).length / currentArtwork.paths.filter(p => !p.id.startsWith('ant')).length) * 100)}%</span>
-            </div>
-          </div>
-        )}
+           {/* Zoom Controls */}
+           <div className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-30 pointer-events-auto">
+               <div className="bg-white/90 backdrop-blur-md border border-slate-200/60 shadow-lg rounded-2xl p-1.5 flex flex-col gap-1">
+                 <button onClick={() => setZoomLevel(z => Math.min(z + 0.3, 4))} className="w-10 h-10 rounded-xl hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors">
+                   <ZoomIn className="w-5 h-5" />
+                 </button>
+                 <div className="w-6 h-px bg-slate-200 mx-auto" />
+                 <button onClick={() => setZoomLevel(z => Math.max(z - 0.3, 0.5))} className="w-10 h-10 rounded-xl hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors">
+                   <ZoomOut className="w-5 h-5" />
+                 </button>
+               </div>
+           </div>
 
-        {/* Canvas */}
-        <div className="mb-6 w-full max-w-[550px] mx-auto aspect-square bg-white/40 backdrop-blur-2xl rounded-[3rem] p-4 sm:p-8 flex items-center justify-center relative shadow-[0_32px_64px_-16px_rgba(56,189,248,0.15)] border border-white transition-all overflow-hidden">
-          <div className="absolute inset-0 bg-sky-200/5 mix-blend-overlay pointer-events-none"></div>
-          
-          <div className="absolute right-4 top-4 flex flex-col gap-2 z-20">
-            <button onClick={() => setZoomLevel(z => Math.min(z + 0.5, 3))} className="w-8 h-8 bg-white/80 rounded-full shadow-md text-sky-900 font-bold flex items-center justify-center border border-sky-900/10 hover:bg-sky-100 active:scale-95">+</button>
-            <button onClick={() => setZoomLevel(z => Math.max(z - 0.5, 1))} className="w-8 h-8 bg-white/80 rounded-full shadow-md text-sky-900 font-bold flex items-center justify-center border border-sky-900/10 hover:bg-sky-100 active:scale-95">-</button>
-          </div>
+           {/* Main Workspace Area (Canvas Layer) */}
+           <div className="absolute inset-0 z-10 flex items-center justify-center pt-16 pb-48 overflow-hidden cursor-grab active:cursor-grabbing">
+              <motion.div
+                key={activeArtworkId}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: zoomLevel }}
+                className="transform-origin-center transition-transform duration-300 w-[85vmin] max-w-[800px] aspect-square"
+              >
+                <svg ref={svgRef} viewBox={currentArtwork.viewBox} className="w-full h-full drop-shadow-2xl relative z-10 filter-glow">
+                  <defs>
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="1.5" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                    
+                    <linearGradient id="brush-shine" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="white" stopOpacity="0.4" />
+                      <stop offset="50%" stopColor="white" stopOpacity="0" />
+                      <stop offset="100%" stopColor="black" stopOpacity="0.1" />
+                    </linearGradient>
 
-          <motion.div
-            key={activeArtworkId}
-            initial={{ opacity: 0, scale: 0.95, rotate: -2 }}
-            animate={{ opacity: 1, scale: zoomLevel, rotate: 0 }}
-            className="w-full h-full transform-origin-center transition-transform duration-300"
-          >
-            <svg viewBox={currentArtwork.viewBox} className="w-full h-full drop-shadow-xl relative z-10 filter-glow">
-              <defs>
-                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="1.5" result="blur" />
-                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
-                
-                <linearGradient id="brush-shine" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="white" stopOpacity="0.4" />
-                  <stop offset="50%" stopColor="white" stopOpacity="0" />
-                  <stop offset="100%" stopColor="black" stopOpacity="0.1" />
-                </linearGradient>
+                    <pattern id="target-pattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                       <rect width="10" height="10" fill="rgba(0,0,0,0)" />
+                       <circle cx="5" cy="5" r="2" fill="rgba(56, 189, 248, 0.5)" />
+                    </pattern>
 
-                <pattern id="target-pattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-                   <rect width="10" height="10" fill="rgba(0,0,0,0)" />
-                   <circle cx="5" cy="5" r="2" fill="rgba(56, 189, 248, 0.5)" />
-                </pattern>
-              </defs>
+                    <filter id="paper-noise">
+                      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise" />
+                      <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0.05 0.05 0.05 0 0" in="noise" />
+                    </filter>
+                  </defs>
 
-              {currentArtwork.paths.map((path) => {
-                const isAnt = path.id.startsWith('ant');
-                const isFilled = !!currentFills[path.id];
-                const isHinted = hintPathId === path.id;
-                
-                // In classic mode, highlight paths matching selected color
-                const isTargetNumber = isClassicMode && currentArtwork.classicPalette && 
-                  path.number === (currentArtwork.classicPalette.indexOf(selectedColor) + 1) && !isFilled;
+                  {currentArtwork.paths.map((path) => {
+                    const isAnt = path.id.startsWith('ant');
+                    const isFilled = !!currentFills[path.id];
+                    const isHinted = hintPathId === path.id;
+                    
+                    // In classic mode, highlight paths matching selected color
+                    const isTargetNumber = isClassicMode && currentArtwork.classicPalette && 
+                      path.number === (currentArtwork.classicPalette.indexOf(selectedColor) + 1) && !isFilled;
 
-                // Color calculation:
-                // - Ant = none
-                // - Filled = the saved color
-                // - Target & Unfilled = target-pattern
-                // - Unfilled (not target) = white/40 (classic color-by-number uses a muted or white fill)
-                const fillColor = isAnt ? 'none' : (isFilled ? currentFills[path.id] : (isTargetNumber ? 'url(#target-pattern)' : (isClassicMode ? '#ffffff' : 'rgba(255, 255, 255, 0.4)')));
+                    const fillColor = isAnt ? 'none' : (isFilled ? currentFills[path.id] : (isTargetNumber ? 'url(#target-pattern)' : (isClassicMode ? '#ffffff' : 'rgba(255, 255, 255, 0.6)')));
 
-                return (
-                  <g key={path.id} filter={(!isClassicMode && !isFilled) ? "url(#glow)" : undefined}>
-                    <path
-                      d={path.d}
-                      fill={fillColor}
-                      stroke={isClassicMode ? '#1e293b' : "rgba(100, 116, 139, 0.3)"}
-                      strokeWidth={isTargetNumber ? 1.5 : (isClassicMode ? 0.75 : 0.5)}
-                      strokeLinecap="round"
-                      onClick={() => handleFill(path.id)}
-                      className={`${isAnt ? '' : 'cursor-pointer hover:opacity-80 transition-opacity duration-300'} ${isHinted ? 'animate-pulse' : ''}`}
-                      style={{ 
-                        transition: 'fill 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
-                      }}
-                    />
-                    {isHinted && !isFilled && (
-                       <path d={path.d} fill="rgba(250, 204, 21, 0.6)" stroke="#facc15" strokeWidth="2" className="pointer-events-none animate-pulse" />
-                    )}
-                    {!isAnt && (
-                      <>
+                    let wingCls = '';
+                    if (currentArtwork.id === 'butterfly' || currentArtwork.id === 'monarch-journey' || currentArtwork.id === 'majestic-butterfly') {
+                       if (path.id.startsWith('ul-') || path.id.startsWith('ll-') || path.id.startsWith('mj-l')) wingCls = 'wing-left';
+                       else if (path.id.startsWith('ur-') || path.id.startsWith('lr-') || path.id.startsWith('mj-r')) wingCls = 'wing-right';
+                    }
+
+                    return (
+                      <g key={path.id} className={wingCls} filter={(!isClassicMode && !isFilled) ? "url(#glow)" : undefined}>
                         <path
                           d={path.d}
-                          fill="url(#brush-shine)"
-                          className="pointer-events-none mix-blend-overlay opacity-30"
+                          fill={fillColor}
+                          stroke={isClassicMode ? '#334155' : "rgba(71, 85, 105, 0.2)"}
+                          strokeWidth={isTargetNumber ? 1.5 : (isClassicMode ? 0.75 : 0.5)}
+                          strokeLinecap="round"
+                          onClick={() => handleFill(path.id)}
+                          className={`${isAnt ? '' : 'cursor-pointer hover:opacity-80 transition-opacity duration-300'} ${isHinted ? 'animate-pulse' : ''}`}
+                          style={{ transition: 'fill 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}
                         />
-                        {isClassicMode && path.number && path.center && (!isFilled) && (
-                          <text
-                            x={path.center.x}
-                            y={path.center.y}
-                            fontSize={isTargetNumber ? "8" : "6"}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            className={`pointer-events-none font-bold select-none transition-colors ${isTargetNumber ? 'fill-sky-700' : 'fill-slate-600'}`}
-                          >
-                            {path.number}
-                          </text>
+                        {isHinted && !isFilled && (
+                           <path d={path.d} fill="rgba(250, 204, 21, 0.6)" stroke="#facc15" strokeWidth="2" className="pointer-events-none animate-pulse" />
                         )}
-                      </>
-                    )}
-                  </g>
-                );
-              })}
-            </svg>
-          </motion.div>
-        </div>
-
-      {/* Palette Tools */}
-      <div className="w-full space-y-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-sky-500/10 flex items-center justify-center">
-                <Palette className="w-4 h-4 text-sky-500" />
-              </div>
-              <span className="text-xs uppercase tracking-[0.2em] font-bold text-sky-900/40">
-                {activePalette === 'classic' ? 'Challenge Palette' : PALETTE_NAMES.find(p => p.id === activePalette)?.label}
-              </span>
-            </div>
-            {isClassicMode && (
-               <button 
-                onClick={handleHint}
-                className="bg-sky-500/10 text-sky-500 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-sky-500/20 transition-colors"
-              >
-                Need a hint?
-              </button>
-            )}
-          </div>
-          
-          <div className="flex gap-1.5 bg-white/60 backdrop-blur-md p-1.5 rounded-full border border-white/80 shadow-sm overflow-x-auto scrollbar-hide max-w-full">
-            {PALETTE_NAMES.map((palette) => (
-              <button
-                key={palette.id}
-                onClick={() => {
-                  setActivePalette(palette.id);
-                  if (palette.id === 'classic') setIsClassicMode(true);
-                  else setIsClassicMode(false);
-                }}
-                className={`px-4 py-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all whitespace-nowrap ${
-                  activePalette === palette.id
-                    ? 'bg-sky-500 text-white shadow-md'
-                    : 'text-sky-900/40 hover:text-sky-900 hover:bg-white/80'
-                }`}
-              >
-                {palette.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        <div className="bg-white/40 backdrop-blur-xl p-4 sm:p-6 rounded-[2rem] border border-white/80 shadow-lg w-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activePalette}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              variants={{
-                hidden: { opacity: 0, y: 10 },
-                visible: {
-                  opacity: 1, y: 0,
-                  transition: { staggerChildren: 0.02 }
-                },
-                exit: {
-                  opacity: 0, y: -10,
-                  transition: { staggerChildren: 0.01, staggerDirection: -1 }
-                }
-              }}
-              className={activePalette === 'classic' ? "flex gap-4 overflow-x-auto pb-4 pt-2 px-2 scrollbar-hide" : "grid grid-cols-6 gap-3 sm:gap-4"}
-            >
-              {activePalette === 'ai' && sessionInfo ? (
-                Object.entries(sessionInfo.palette).map(([key, item]: [string, { hex: string, theme: string }]) => (
-                  <motion.button
-                    key={`ai-${key}`}
-                    variants={{
-                      hidden: { scale: 0.7, opacity: 0 },
-                      visible: { scale: 1, opacity: 1 },
-                      exit: { scale: 0.7, opacity: 0 }
-                    }}
-                    onClick={() => setSelectedColor(item.hex)}
-                    className="relative w-full aspect-square rounded-2xl transition-all hover:scale-110 active:scale-90 shadow-sm border border-white/40 group overflow-hidden"
-                    style={{ 
-                      backgroundColor: item.hex,
-                    }}
-                  >
-                    <div className="absolute inset-x-0 bottom-0 bg-black/40 py-1 text-[8px] text-white opacity-0 group-hover:opacity-100 transition-opacity font-bold truncate px-1">
-                      {item.theme}
-                    </div>
-                    <div className={`absolute inset-0 bg-white/20 transition-opacity ${selectedColor === item.hex ? 'opacity-100' : 'opacity-0'}`} />
-                    {selectedColor === item.hex && (
-                      <motion.div
-                        layoutId="color-check-sky"
-                        className="absolute inset-0 flex items-center justify-center backdrop-blur-[1px]"
-                      >
-                        <div className="bg-white/40 p-1.5 rounded-full shadow-sm">
-                          <Check className="w-3.5 h-3.5 text-white" />
-                        </div>
-                      </motion.div>
-                    )}
-                  </motion.button>
-                ))
-              ) : activePalette === 'classic' && currentArtwork.classicPalette ? (
-                currentArtwork.classicPalette.map((color, index) => {
-                  const total = currentArtwork.paths.filter(p => p.number === (index + 1) && !p.id.startsWith('ant')).length;
-                  const remaining = currentArtwork.paths.filter(p => p.number === (index + 1) && !currentFills[p.id] && !p.id.startsWith('ant')).length;
-                  const isDone = total > 0 && remaining === 0;
-                  const progress = total === 0 ? 100 : ((total - remaining) / total) * 100;
-                  const isSelected = selectedColor === color;
+                        {!isAnt && (
+                          <>
+                            <path
+                              d={path.d}
+                              fill="url(#brush-shine)"
+                              className="pointer-events-none mix-blend-overlay opacity-30"
+                            />
+                            {isClassicMode && path.number && path.center && (!isFilled) && (
+                              <text
+                                x={path.center.x}
+                                y={path.center.y}
+                                fontSize={isTargetNumber ? "8" : "6"}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                className={`pointer-events-none font-bold select-none transition-colors ${isTargetNumber ? 'fill-sky-700' : 'fill-slate-500'}`}
+                              >
+                                {path.number}
+                              </text>
+                            )}
+                          </>
+                        )}
+                      </g>
+                    );
+                  })}
                   
-                  return (
-                    <motion.button
-                      key={`classic-${color}`}
-                      variants={{
-                        hidden: { scale: 0.7, opacity: 0 },
-                        visible: { scale: 1, opacity: 1 },
-                        exit: { scale: 0.7, opacity: 0 }
-                      }}
-                      onClick={() => setSelectedColor(color)}
-                      className={`relative min-w-[56px] h-14 rounded-full flex-shrink-0 transition-all ${isSelected ? 'scale-110 shadow-lg -translate-y-2' : 'hover:scale-105'} flex items-center justify-center`}
-                    >
-                      {/* Circular Progress SVG */}
-                      <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
-                         <circle 
-                           cx="28" cy="28" r="26" 
-                           fill={isDone ? '#e2e8f0' : "white"} 
-                           className="drop-shadow-sm"
-                         />
-                         {!isDone && (
-                           <circle 
-                             cx="28" cy="28" r="26" 
-                             fill="none" 
-                             stroke={color} 
-                             strokeWidth="4" 
-                             strokeDasharray={`${2 * Math.PI * 26}`}
-                             strokeDashoffset={`${2 * Math.PI * 26 * (1 - progress / 100)}`}
-                             strokeLinecap="round"
-                             className="transition-all duration-500"
-                           />
-                         )}
-                      </svg>
-                      
-                      {/* Inner Color Fill */}
-                      <div 
-                        className="w-10 h-10 rounded-full flex items-center justify-center shadow-inner relative z-10"
-                        style={{ backgroundColor: color, opacity: isDone ? 0.4 : 1 }}
-                      >
-                         {!isDone && <span className="text-white text-[12px] font-bold mix-blend-overlay opacity-90">{index + 1}</span>}
-                         {isDone && <Check className="w-5 h-5 text-slate-500 absolute" />}
-                      </div>
-                      
-                      {isSelected && !isDone && (
-                         <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-slate-800 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white shadow-sm z-20">
-                           {remaining}
-                         </div>
-                      )}
-                    </motion.button>
-                  );
-                })
-              ) : (
-                (activePalette !== 'ai') && PALETTES[activePalette as keyof typeof PALETTES]?.map((color) => (
-                  <motion.button
-                    key={`${activePalette}-${color}`}
-                    variants={{
-                      hidden: { scale: 0.7, opacity: 0 },
-                      visible: { scale: 1, opacity: 1 },
-                      exit: { scale: 0.7, opacity: 0 }
-                    }}
-                    onClick={() => setSelectedColor(color)}
-                    className="relative w-full aspect-square rounded-2xl transition-all hover:scale-110 active:scale-90 shadow-sm border border-white/40 group overflow-hidden"
-                    style={{ 
-                      backgroundColor: color,
-                    }}
-                  >
-                    <div className={`absolute inset-0 bg-white/20 transition-opacity ${selectedColor === color ? 'opacity-100' : 'opacity-0 ring-4 ring-inset ring-sky-500/20'}`} />
-                    {selectedColor === color && (
-                      <motion.div
-                        layoutId="color-check-sky"
-                        className="absolute inset-0 flex items-center justify-center backdrop-blur-[1px]"
-                      >
-                        <div className="bg-white/40 p-1.5 rounded-full shadow-sm">
-                          <Check className="w-3.5 h-3.5 text-white" />
-                        </div>
-                      </motion.div>
-                    )}
-                  </motion.button>
-                ))
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-        
-        {sessionInfo && Object.values(fills[activeArtworkId] || {}).length > currentArtwork.paths.length * 0.4 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mt-6 p-6 rounded-2xl bg-white/60 border border-white/80 shadow-md w-full max-w-lg mx-auto"
-          >
-            <p className="text-sm font-serif italic text-sky-900/60 text-center">
-              A gentle check-in: "{sessionInfo.mid_coloring_prompt}"
-            </p>
-          </motion.div>
-        )}
+                  {/* Subtle paper texture overlay */}
+                  <rect 
+                    x="-20%" y="-20%" width="140%" height="140%" 
+                    fill="url(#paper-noise)" 
+                    className="pointer-events-none mix-blend-multiply opacity-70" 
+                  />
+                </svg>
+              </motion.div>
+           </div>
 
-        {sessionInfo && Object.values(fills[activeArtworkId] || {}).length >= currentArtwork.paths.filter(p => !p.id.startsWith('ant')).length && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-8 p-10 rounded-[3rem] bg-gradient-to-br from-sky-400 to-indigo-500 text-white shadow-2xl text-center w-full max-w-lg mx-auto"
-          >
-            <h4 className="text-3xl font-serif mb-4">Masterpiece Complete</h4>
-            <p className="text-lg opacity-90 italic">"{sessionInfo.completion_affirmation}"</p>
-          </motion.div>
-        )}
-      </div>
+           {/* Completion Overlays */}
+           <AnimatePresence>
+             {sessionInfo && Object.values(fills[activeArtworkId] || {}).length > currentArtwork.paths.length * 0.4 && Object.values(fills[activeArtworkId] || {}).length < currentArtwork.paths.length * 0.45 && (
+               <motion.div
+                 initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                 className="absolute bottom-12 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-md px-6 py-4 rounded-3xl shadow-2xl border border-slate-200/50 max-w-sm w-full text-center"
+               >
+                 <p className="text-sm font-serif italic text-slate-800">
+                   A gentle check-in: "{sessionInfo.mid_coloring_prompt}"
+                 </p>
+               </motion.div>
+             )}
+
+             {sessionInfo && Object.values(fills[activeArtworkId] || {}).length >= currentArtwork.paths.filter(p => !p.id.startsWith('ant')).length && (
+               <motion.div
+                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                 className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md p-4"
+               >
+                 <div className="bg-gradient-to-br from-white to-slate-50 text-slate-800 p-10 rounded-[3rem] shadow-2xl text-center max-w-lg w-full relative overflow-hidden border border-white">
+                   <div className="absolute top-0 right-0 p-8 opacity-5">
+                     <Sparkles className="w-48 h-48" />
+                   </div>
+                   <h4 className="text-4xl font-serif mb-4 relative z-10 text-sky-900">Masterpiece Complete</h4>
+                   <p className="text-lg opacity-80 italic relative z-10 font-serif">"{sessionInfo.completion_affirmation}"</p>
+                   <button 
+                     onClick={() => setSessionInfo(null)}
+                     className="mt-8 px-6 py-3 bg-sky-500 hover:bg-sky-600 shadow-md text-white rounded-full font-bold uppercase tracking-widest text-xs transition-colors relative z-10"
+                   >
+                     Continue
+                   </button>
+                 </div>
+               </motion.div>
+             )}
+           </AnimatePresence>
+
+        </div>
+      )}
     </div>
-  </div>
-  )}
-</div>
   );
 }
