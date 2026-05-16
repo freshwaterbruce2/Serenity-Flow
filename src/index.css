@@ -74,3 +74,18 @@ body {
     radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
     #f0f9ff;
 }
+
+@keyframes shimmer {
+  0% { opacity: 0.3; stroke-width: 1px; }
+  50% { opacity: 1; stroke-width: 3px; }
+  100% { opacity: 0.3; stroke-width: 1px; }
+}
+
+.cosmic-shimmer {
+  animation: shimmer 4s ease-in-out infinite;
+}
+
+.cosmic-shimmer-layer2 {
+  animation: shimmer 5s ease-in-out infinite alternate-reverse;
+  animation-delay: -2s;
+}

@@ -3,9 +3,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 import { Palette, Check, ArrowLeftRight, Save, Download, Sparkles, Wand2, ChevronLeft, Brush, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { toPng } from 'html-to-image';
-  import { generateDetailedMandala, generateMajesticButterfly } from './complexArtworks';
-import { generateLowPolyLandscape } from './generatedLowpoly';
+import { generateDetailedMandala, generateMajesticButterfly, generateGracefulSwans, generateStellarLotus, generateCelestialPhoenix } from './complexArtworks';
 import { generateLowPolySwans } from './generatedSwans';
+import { generateLowPolyLandscape } from './generatedLowpoly';
 
 interface SessionInfo {
   therapeutic_intro: string;
@@ -89,20 +89,47 @@ const ARTWORKS: Artwork[] = [
     ]
   },
   {
-    id: 'mountain-sunrise',
-    name: 'Mountain Sunrise',
-    viewBox: '0 0 400 400',
-    category: 'Nature',
-    classicPalette: ['#fcd34d', '#f59e0b', '#f43f5e', '#3b82f6', '#1e3a8a', '#10b981', '#064e3b', '#60a5fa', '#fef08a'],
-    paths: generateLowPolyLandscape()
+    id: 'twin-hearts',
+    name: 'Twin Hearts',
+    viewBox: '0 0 200 200',
+    category: 'Love',
+    classicPalette: ['#f43f5e', '#e11d48', '#be185d', '#fda4af', '#fecdd3', '#16a34a', '#86efac'],
+    paths: [
+      { id: 'lh-out1', d: 'M80 120 C80 120, 30 90, 30 60 C30 40, 60 40, 80 60 Z', number: 1, center: {x: 55, y: 70}, mirrorId: 'rh-out2' },
+      { id: 'lh-out2', d: 'M80 120 C80 120, 130 90, 130 60 C130 40, 100 40, 80 60 Z', number: 2, center: {x: 105, y: 70}, mirrorId: 'rh-out1' },
+      { id: 'lh-in1', d: 'M80 105 C80 105, 45 85, 45 65 C45 50, 65 50, 80 65 Z', number: 3, center: {x: 65, y: 70}, mirrorId: 'rh-in2' },
+      { id: 'lh-in2', d: 'M80 105 C80 105, 115 85, 115 65 C115 50, 95 50, 80 65 Z', number: 4, center: {x: 95, y: 70}, mirrorId: 'rh-in1' },
+      { id: 'rh-out1', d: 'M130 140 C130 140, 80 110, 80 80 C80 60, 110 60, 130 80 Z', number: 2, center: {x: 105, y: 90}, mirrorId: 'lh-out2' },
+      { id: 'rh-out2', d: 'M130 140 C130 140, 180 110, 180 80 C180 60, 150 60, 130 80 Z', number: 1, center: {x: 155, y: 90}, mirrorId: 'lh-out1' },
+      { id: 'rh-in1', d: 'M130 125 C130 125, 95 105, 95 85 C95 70, 115 70, 130 85 Z', number: 4, center: {x: 115, y: 90}, mirrorId: 'lh-in2' },
+      { id: 'rh-in2', d: 'M130 125 C130 125, 165 105, 165 85 C165 70, 145 70, 130 85 Z', number: 3, center: {x: 145, y: 90}, mirrorId: 'lh-in1' },
+      { id: 'vine-1', d: 'M20 180 Q40 160, 30 140 T50 100 Z', number: 6, center: {x: 35, y: 150} },
+      { id: 'vine-2', d: 'M180 20 Q160 40, 170 60 T150 100 Z', number: 6, center: {x: 165, y: 50} },
+      { id: 'leaf-1', d: 'M30 140 C20 130, 20 120, 30 120 C40 120, 40 130, 30 140 Z', number: 7, center: {x: 30, y: 125} },
+      { id: 'leaf-2', d: 'M50 100 C40 90, 40 80, 50 80 C60 80, 60 90, 50 100 Z', number: 7, center: {x: 50, y: 85} },
+      { id: 'leaf-3', d: 'M170 60 C180 70, 180 80, 170 80 C160 80, 160 70, 170 60 Z', number: 7, center: {x: 170, y: 75} },
+      { id: 'leaf-4', d: 'M150 100 C160 110, 160 120, 150 120 C140 120, 140 110, 150 100 Z', number: 7, center: {x: 150, y: 105} }
+    ]
   },
   {
-    id: 'graceful-swans',
-    name: 'Swan Lake Love',
-    viewBox: '0 0 400 400',
-    category: 'Love',
-    classicPalette: ['#ffffff', '#e2e8f0', '#94a3b8', '#fb923c', '#fde047', '#38bdf8', '#0284c7', '#1e3a8a', '#f43f5e'],
-    paths: generateLowPolySwans()
+    id: 'mountain-sunrise',
+    name: 'Mountain Sunrise',
+    viewBox: '0 0 200 200',
+    category: 'Nature',
+    classicPalette: ['#fcd34d', '#f59e0b', '#f43f5e', '#3b82f6', '#1e3a8a', '#10b981', '#064e3b'],
+    paths: [
+      { id: 'sun', d: 'M100 120 A 40 40 0 1 0 100 40 A 40 40 0 1 0 100 120 Z', number: 1, center: {x: 100, y: 80} },
+      { id: 'sky-rays1', d: 'M0 0 L100 80 L0 50 Z', number: 2, center: {x: 30, y: 40} },
+      { id: 'sky-rays2', d: 'M0 0 L100 0 L100 80 Z', number: 3, center: {x: 60, y: 20} },
+      { id: 'sky-rays3', d: 'M100 0 L200 0 L100 80 Z', number: 3, center: {x: 140, y: 20} },
+      { id: 'sky-rays4', d: 'M200 0 L200 50 L100 80 Z', number: 2, center: {x: 170, y: 40} },
+      { id: 'mntn-bg-l', d: 'M0 160 L60 80 L120 160 Z', number: 5, center: {x: 60, y: 130} },
+      { id: 'mntn-bg-r', d: 'M80 160 L140 70 L200 160 Z', number: 5, center: {x: 140, y: 130} },
+      { id: 'mntn-fg-m', d: 'M40 200 L100 110 L160 200 Z', number: 4, center: {x: 100, y: 160} },
+      { id: 'ground', d: 'M0 160 L200 160 L200 200 L0 200 Z', number: 6, center: {x: 100, y: 180} },
+      { id: 'tree-1', d: 'M20 180 L30 150 L40 180 Z', number: 7, center: {x: 30, y: 170} },
+      { id: 'tree-2', d: 'M160 180 L170 140 L180 180 Z', number: 7, center: {x: 170, y: 165} }
+    ]
   },
   {
     id: 'butterfly',
@@ -436,6 +463,46 @@ const ARTWORKS: Artwork[] = [
     category: 'Butterflies',
     classicPalette: ['#1e1e1e', '#eab308', '#f97316', '#f43f5e', '#ec4899', '#3b82f6', '#14b8a6'],
     paths: generateMajesticButterfly()
+  },
+  {
+    id: 'stellar-lotus',
+    name: 'Stellar Lotus',
+    viewBox: '0 0 200 200',
+    category: 'Nature',
+    classicPalette: ['#f472b6', '#db2777', '#9d174d', '#be185d', '#ec4899', '#fce7f3', '#fbcfe8'],
+    paths: generateStellarLotus()
+  },
+  {
+    id: 'graceful-swans',
+    name: 'Graceful Swans',
+    viewBox: '0 0 400 400',
+    category: 'Nature',
+    classicPalette: ['#1e3a8a', '#1e40af', '#2563eb', '#3b82f6', '#60a5fa', '#f8fafc', '#e2e8f0', '#cbd5e1', '#94a3b8', '#0ea5e9', '#38bdf8', '#7dd3fc', '#0f172a'],
+    paths: generateGracefulSwans()
+  },
+  {
+    id: 'lowpoly-swans',
+    name: 'Mirror Lake Swans',
+    viewBox: '0 0 400 400',
+    category: 'Nature',
+    classicPalette: ['#f8fafc', '#e2e8f0', '#cbd5e1', '#94a3b8', '#1e3a8a', '#3b82f6'],
+    paths: generateLowPolySwans()
+  },
+  {
+    id: 'lowpoly-landscape',
+    name: 'Serene Peaks',
+    viewBox: '0 0 400 300',
+    category: 'Geometric',
+    classicPalette: ['#1e1e1e', '#0f172a', '#1e293b', '#334155', '#475569', '#cbd5e1', '#e2e8f0', '#f8fafc', '#0ea5e9', '#0284c7', '#0369a1', '#1e3a8a', '#312e81', '#1e1b4b'],
+    paths: generateLowPolyLandscape()
+  },
+  {
+    id: 'celestial-phoenix',
+    name: 'Celestial Phoenix',
+    viewBox: '0 0 400 400',
+    category: 'Nature',
+    classicPalette: ['#f43f5e', '#fb923c', '#fbbf24', '#f59e0b', '#dc2626', '#991b1b', '#4c0519', '#fef3c7'],
+    paths: generateCelestialPhoenix()
   }
 ];
 
@@ -701,12 +768,21 @@ export default function ZenColoring() {
       <style>
         {`
           @keyframes cosmicShimmer {
-            0% { stroke-dashoffset: 200; }
+            0% { stroke-dashoffset: 300; }
             100% { stroke-dashoffset: 0; }
+          }
+          @keyframes cosmicGlow {
+            0%, 100% { filter: drop-shadow(0 0 4px rgba(255,255,255,0.4)); opacity: 0.7; }
+            50% { filter: drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 24px rgba(56, 189, 248, 0.8)); opacity: 1; }
           }
           .cosmic-shimmer {
             stroke-dasharray: 15 45;
-            animation: cosmicShimmer 4s linear infinite;
+            animation: cosmicShimmer 4s linear infinite, cosmicGlow 3s ease-in-out infinite;
+          }
+          .cosmic-shimmer-layer2 {
+            stroke-dasharray: 40 80;
+            stroke-width: 3px;
+            animation: cosmicShimmer 7s linear infinite reverse, cosmicGlow 5s ease-in-out infinite;
           }
         `}
       </style>
@@ -758,7 +834,7 @@ export default function ZenColoring() {
                             const targetColor = art.classicPalette?.[((p.number || 1) - 1) % (art.classicPalette?.length || 1)] || '#cbd5e1';
                             const fillColor = isAnt ? 'none' : (savedColor || '#ffffff');
                             const fillOpacity = 1;
-                            const strokeColor = isAnt ? "rgba(15, 23, 42, 0.4)" : (savedColor ? "rgba(0,0,0,0.1)" : "#94a3b8");
+                            const strokeColor = isAnt ? "rgba(15, 23, 42, 0.4)" : (savedColor ? "rgba(0,0,0,0.1)" : "#334155");
                             
                             return (
                                <g key={p.id} className={
@@ -767,14 +843,24 @@ export default function ZenColoring() {
                                }>
                                  <path d={p.d} fill={fillColor} fillOpacity={fillOpacity} stroke={strokeColor} strokeWidth={isAnt ? 1.5 : (savedColor ? 1 : 0.8)} strokeLinecap="round" />
                                  {art.id === 'nebula' && (p.id === 'spiral-1' || p.id === 'spiral-2') && (
-                                   <path
-                                     d={p.d}
-                                     fill="none"
-                                     stroke="rgba(255, 255, 255, 0.7)"
-                                     strokeWidth="2"
-                                     strokeLinecap="round"
-                                     className="pointer-events-none cosmic-shimmer mix-blend-screen"
-                                   />
+                                   <>
+                                     <path
+                                       d={p.d}
+                                       fill="none"
+                                       stroke="rgba(255, 255, 255, 0.7)"
+                                       strokeWidth="2"
+                                       strokeLinecap="round"
+                                       className="pointer-events-none cosmic-shimmer mix-blend-screen"
+                                     />
+                                     <path
+                                       d={p.d}
+                                       fill="none"
+                                       stroke="rgba(186, 230, 253, 0.5)"
+                                       strokeWidth="3"
+                                       strokeLinecap="round"
+                                       className="pointer-events-none cosmic-shimmer-layer2 mix-blend-screen"
+                                     />
+                                   </>
                                  )}
                                </g>
                             );
@@ -933,13 +1019,14 @@ export default function ZenColoring() {
                   )}
                 </div>
 
-                <div className="px-4 py-4 sm:py-6 overflow-x-auto scrollbar-hide">
-                  <AnimatePresence mode="popLayout">
-                    <motion.div
-                      key={activePalette}
-                      initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                      className="flex gap-4 min-w-max px-2 items-center"
-                    >
+                <div className="px-4 py-4 sm:py-6 overflow-x-auto scrollbar-hide flex w-full">
+                  <div className="flex-1 flex justify-center min-w-max">
+                    <AnimatePresence mode="popLayout">
+                      <motion.div
+                        key={activePalette}
+                        initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                        className="flex gap-4 sm:gap-6 px-2 sm:px-4 items-center"
+                      >
                       {activePalette === 'ai' && sessionInfo ? (
                         Object.entries(sessionInfo.palette).map(([key, item]: [string, { hex: string, theme: string }]) => (
                           <div key={`ai-${key}`} className="flex flex-col items-center gap-2">
@@ -1014,6 +1101,7 @@ export default function ZenColoring() {
                       )}
                     </motion.div>
                   </AnimatePresence>
+                  </div>
                 </div>
              </div>
            </div>
@@ -1085,7 +1173,7 @@ export default function ZenColoring() {
                         <path
                           d={path.d}
                           fill={fillColor}
-                          stroke={isFilled ? 'transparent' : '#94a3b8'}
+                          stroke={isFilled ? 'transparent' : '#334155'}
                           strokeWidth={isTargetNumber ? 1.5 : 0.75}
                           strokeLinecap="round"
                           onClick={() => handleFill(path.id)}
@@ -1103,20 +1191,30 @@ export default function ZenColoring() {
                               className="pointer-events-none mix-blend-overlay opacity-30"
                             />
                             {currentArtwork.id === 'nebula' && (path.id === 'spiral-1' || path.id === 'spiral-2') && (
-                              <path
-                                d={path.d}
-                                fill="none"
-                                stroke="rgba(255, 255, 255, 0.7)"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                className="pointer-events-none cosmic-shimmer mix-blend-screen"
-                              />
+                              <>
+                                <path
+                                  d={path.d}
+                                  fill="none"
+                                  stroke="rgba(255, 255, 255, 0.7)"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  className="pointer-events-none cosmic-shimmer mix-blend-screen"
+                                />
+                                <path
+                                  d={path.d}
+                                  fill="none"
+                                  stroke="rgba(186, 230, 253, 0.5)"
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                  className="pointer-events-none cosmic-shimmer-layer2 mix-blend-screen"
+                                />
+                              </>
                             )}
                             {path.number && path.center && (!isFilled) && (
                               <text
                                 x={path.center.x}
                                 y={path.center.y}
-                                fontSize={isTargetNumber ? (currentArtwork.viewBox.includes('400') ? "14" : "8") : (currentArtwork.viewBox.includes('400') ? "10" : "6")}
+                                fontSize={isTargetNumber ? "8" : "6"}
                                 textAnchor="middle"
                                 dominantBaseline="middle"
                                 className={`pointer-events-none font-bold select-none transition-colors ${isTargetNumber ? 'fill-sky-700' : 'fill-slate-500'}`}
