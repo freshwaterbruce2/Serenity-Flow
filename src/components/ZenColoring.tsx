@@ -624,11 +624,11 @@ export default function ZenColoring() {
                </div>
              </div>
              
-             <div className="bg-white/90 backdrop-blur-md h-10 sm:h-12 p-1 border border-slate-200/60 rounded-2xl shadow-sm flex items-center gap-1 sm:gap-2 pointer-events-auto">
+             <div className="bg-white/90 backdrop-blur-md h-10 sm:h-12 p-1 border border-slate-200/60 rounded-2xl shadow-sm flex items-center gap-0.5 sm:gap-1 pointer-events-auto shrink-0">
                <button 
                  onClick={requestAISession} 
                  disabled={loadingSession} 
-                 className={`h-full px-2 sm:px-4 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1 sm:gap-2 ${loadingSession ? 'bg-sky-50 text-sky-400' : 'bg-sky-50 text-sky-600 hover:bg-sky-100'}`}
+                 className={`h-full px-2 sm:px-3 shrink-0 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1 ${loadingSession ? 'bg-sky-50 text-sky-400' : 'bg-sky-50 text-sky-600 hover:bg-sky-100'}`}
                >
                  {loadingSession ? <div className="w-3 h-3 rounded-full border-2 border-sky-400/40 border-t-sky-400 animate-spin" /> : <Sparkles className="w-3 sm:w-3.5 h-3 sm:h-3.5" />}
                  <span className="hidden sm:inline">AI Guide</span>
@@ -637,13 +637,13 @@ export default function ZenColoring() {
                <button onClick={handleSave} className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors" title="Save">
                   {saveStatus === 'saved' ? <Check className="w-4 h-4 text-green-500" /> : <Save className="w-4 h-4" />}
                </button>
-               <button onClick={handleExport} disabled={exporting} className="hidden sm:flex w-10 h-10 rounded-xl items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors" title="Export">
+               <button onClick={handleExport} disabled={exporting} className="flex w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors" title="Export">
                   <Download className="w-4 h-4" />
                </button>
-               <button onClick={() => setSymmetryMode(!symmetryMode)} className={`hidden sm:flex w-10 h-10 rounded-xl items-center justify-center transition-colors ${symmetryMode ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-100'}`} title="Symmetry">
+               <button onClick={() => setSymmetryMode(!symmetryMode)} className={`flex w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl items-center justify-center transition-colors ${symmetryMode ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-100'}`} title="Symmetry">
                   <ArrowLeftRight className="w-4 h-4" />
                </button>
-               <button onClick={handleReset} className="hidden sm:flex w-10 h-10 rounded-xl items-center justify-center text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors" title="Reset">
+               <button onClick={handleReset} className="flex w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl items-center justify-center text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors" title="Reset">
                   <RotateCcw className="w-4 h-4" />
                </button>
              </div>
@@ -693,7 +693,7 @@ export default function ZenColoring() {
                   )}
                 </div>
 
-                <div className="px-4 py-4 sm:py-6 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex w-full min-h-[100px]">
+                <div className="px-4 py-4 sm:py-6 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex w-full min-h-[100px] bg-white/40 border-t border-slate-100/60 shadow-inner">
                   <AnimatePresence mode="popLayout">
                     <motion.div
                       key={activePalette}
@@ -849,7 +849,7 @@ export default function ZenColoring() {
                           strokeLinecap="round"
                           onClick={() => handleFill(path.id)}
                           className={`cursor-pointer hover:opacity-80 transition-opacity duration-300 ${isHinted ? 'animate-pulse' : ''}`}
-                          style={{ transition: 'fill 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                          style={{ filter: isFilled ? 'none' : (isTargetNumber ? 'url(#target-pattern)' : 'none'), transition: 'fill 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}
                         />
                         {isHinted && !isFilled && (
                            <path d={path.d} fill="rgba(250, 204, 21, 0.6)" stroke="#facc15" strokeWidth="2" className="pointer-events-none animate-pulse" />
