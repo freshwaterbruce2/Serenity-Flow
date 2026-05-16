@@ -114,18 +114,6 @@ export default function App() {
             </motion.div>
           )}
 
-          {currentView === 'color' && (
-            <motion.div
-              key="color"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="px-6 py-12"
-            >
-              <ZenColoring />
-            </motion.div>
-          )}
-
           {currentView === 'journal' && (
             <motion.div
               key="journal"
@@ -200,6 +188,21 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
+
+      <AnimatePresence>
+        {currentView === 'color' && (
+          <motion.div
+            key="color"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-20 pointer-events-auto"
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+          >
+            <ZenColoring />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Navigation 
         currentView={currentView} 
